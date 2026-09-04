@@ -123,7 +123,7 @@ export const GuestsView: React.FC = () => {
               All Guests ({filteredGuests.length})
             </h2>
             <span className="text-xs text-[#721828] font-serif font-bold">
-              Total LTV: ₹{guests.reduce((sum, g) => sum + g.lifetimeValue, 0).toLocaleString()}
+              Total LTV: ₹{guests.reduce((sum, g) => sum + (g.lifetimeValue ?? 0), 0).toLocaleString()}
             </span>
           </div>
 
@@ -153,7 +153,7 @@ export const GuestsView: React.FC = () => {
                     <div className="flex items-center gap-2.5 text-[11px] text-[#968186]">
                       <span>{guest.totalStays} {guest.totalStays === 1 ? 'Stay' : 'Stays'}</span>
                       <span>•</span>
-                      <span className="text-[#2d1217] font-serif font-bold">LTV: ₹{guest.lifetimeValue.toLocaleString()}</span>
+                      <span className="text-[#2d1217] font-serif font-bold">LTV: ₹{(guest.lifetimeValue ?? 0).toLocaleString()}</span>
                     </div>
                   </div>
 
@@ -215,7 +215,7 @@ export const GuestsView: React.FC = () => {
                 </div>
                 <div className="bg-[#fdf8f5] p-3.5 rounded-2xl border border-[#e4d8cf]">
                   <p className="text-[10px] uppercase font-bold tracking-wider text-[#968186]">Lifetime Value</p>
-                  <p className="text-base font-bold text-[#2d1217] font-serif mt-1">₹{selectedGuest.lifetimeValue.toLocaleString()}</p>
+                  <p className="text-base font-bold text-[#2d1217] font-serif mt-1">₹{(selectedGuest.lifetimeValue ?? 0).toLocaleString()}</p>
                 </div>
               </div>
 
@@ -335,9 +335,9 @@ export const GuestsView: React.FC = () => {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-[#2d1217] font-serif">₹{b.totalQuote.toLocaleString()}</p>
+                        <p className="font-bold text-[#2d1217] font-serif">₹{(b.totalQuote ?? (b as any).totalAmount ?? 0).toLocaleString()}</p>
                         <p className="text-[10px] text-[#968186]">
-                          {b.balanceDue > 0 ? `₹${b.balanceDue.toLocaleString()} Due` : 'Fully Paid'}
+                          {(b.balanceDue ?? 0) > 0 ? `₹${(b.balanceDue ?? 0).toLocaleString()} Due` : 'Fully Paid'}
                         </p>
                       </div>
                     </div>

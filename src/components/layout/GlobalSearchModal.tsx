@@ -90,54 +90,54 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
     }
 
     const matchedLeads = leads.filter(l => 
-      l.name.toLowerCase().includes(q) ||
-      l.phone.includes(q) ||
-      l.id.toLowerCase().includes(q) ||
+      (l.name || '').toLowerCase().includes(q) ||
+      (l.phone || '').includes(q) ||
+      (l.id || '').toLowerCase().includes(q) ||
       (l.notes && l.notes.toLowerCase().includes(q)) ||
-      l.source.toLowerCase().includes(q) ||
-      l.status.toLowerCase().includes(q)
+      (l.source || '').toLowerCase().includes(q) ||
+      (l.status || '').toLowerCase().includes(q)
     ).slice(0, 6);
 
     const matchedBookings = bookings.filter(b => 
-      b.guestName.toLowerCase().includes(q) ||
-      b.guestPhone.includes(q) ||
-      b.id.toLowerCase().includes(q) ||
-      b.status.toLowerCase().includes(q) ||
-      b.checkInDate.includes(q) ||
-      b.checkOutDate.includes(q) ||
+      (b.guestName || '').toLowerCase().includes(q) ||
+      (b.guestPhone || '').includes(q) ||
+      (b.id || '').toLowerCase().includes(q) ||
+      (b.status || '').toLowerCase().includes(q) ||
+      (b.checkInDate || '').includes(q) ||
+      (b.checkOutDate || '').includes(q) ||
       (b.specialRequests && b.specialRequests.toLowerCase().includes(q))
     ).slice(0, 6);
 
     const matchedGuests = guests.filter(g => 
-      g.name.toLowerCase().includes(q) ||
-      g.phone.includes(q) ||
-      g.id.toLowerCase().includes(q) ||
+      (g.name || '').toLowerCase().includes(q) ||
+      (g.phone || '').includes(q) ||
+      (g.id || '').toLowerCase().includes(q) ||
       (g.email && g.email.toLowerCase().includes(q)) ||
       (g.city && g.city.toLowerCase().includes(q)) ||
       (g.serviceNotes && g.serviceNotes.toLowerCase().includes(q))
     ).slice(0, 6);
 
     const matchedTasks = tasks.filter(t => 
-      t.title.toLowerCase().includes(q) ||
+      (t.title || '').toLowerCase().includes(q) ||
       (t.description && t.description.toLowerCase().includes(q)) ||
-      t.category.toLowerCase().includes(q) ||
-      t.priority.toLowerCase().includes(q) ||
-      t.status.toLowerCase().includes(q)
+      (t.category || '').toLowerCase().includes(q) ||
+      (t.priority || '').toLowerCase().includes(q) ||
+      (t.status || '').toLowerCase().includes(q)
     ).slice(0, 6);
 
     const matchedIssues = issues.filter(i => 
-      i.title.toLowerCase().includes(q) ||
+      (i.title || '').toLowerCase().includes(q) ||
       (i.description && i.description.toLowerCase().includes(q)) ||
-      i.propertyAreaId.toLowerCase().includes(q) ||
-      i.severity.toLowerCase().includes(q) ||
-      i.category.toLowerCase().includes(q) ||
-      i.status.toLowerCase().includes(q)
+      (i.propertyAreaId || '').toLowerCase().includes(q) ||
+      (i.severity || '').toLowerCase().includes(q) ||
+      (i.category || '').toLowerCase().includes(q) ||
+      (i.status || '').toLowerCase().includes(q)
     ).slice(0, 6);
 
     const matchedInventory = inventoryItems.filter(item => 
-      item.name.toLowerCase().includes(q) ||
-      item.category.toLowerCase().includes(q) ||
-      item.unit.toLowerCase().includes(q)
+      (item.name || '').toLowerCase().includes(q) ||
+      (item.category || '').toLowerCase().includes(q) ||
+      (item.unit || '').toLowerCase().includes(q)
     ).slice(0, 6);
 
     const total = 
@@ -189,11 +189,12 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
 
     if (selectedCategory === 'all' || selectedCategory === 'bookings') {
       searchResults.bookings.forEach(b => {
+        const amount = b.totalQuote ?? (b as any).totalAmount ?? 0;
         list.push({
           type: 'booking',
           tab: 'bookings',
           title: `${b.guestName} (${b.id})`,
-          subtitle: `${b.checkInDate} to ${b.checkOutDate} • ₹${b.totalAmount.toLocaleString('en-IN')}`,
+          subtitle: `${b.checkInDate} to ${b.checkOutDate} • ₹${amount.toLocaleString('en-IN')}`,
           badge: b.status,
           badgeColor: b.status === 'Confirmed' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800',
           id: b.id,

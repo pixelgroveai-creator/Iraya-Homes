@@ -300,7 +300,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab }) =>
                   <span>Enquiry & Lead Pipeline</span>
                 </h2>
                 <p className="text-xs text-[#968186] mt-0.5">
-                  {kpis.urgentFollowUpsToday} leads require immediate contact today • Pipeline Value: ₹{kpis.pipelineValue.toLocaleString()}
+                  {kpis.urgentFollowUpsToday} leads require immediate contact today • Pipeline Value: ₹{(kpis.pipelineValue ?? 0).toLocaleString()}
                 </p>
               </div>
               <button

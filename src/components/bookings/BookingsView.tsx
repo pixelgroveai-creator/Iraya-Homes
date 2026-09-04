@@ -225,12 +225,12 @@ export const BookingsView: React.FC = () => {
                   </div>
                   <div className="bg-[#fdf8f5] p-3.5 rounded-2xl border border-[#e4d8cf]">
                     <p className="text-[10px] uppercase font-bold tracking-wider text-[#968186]">Total Tariff Quote</p>
-                    <p className="font-bold text-[#2d1217] font-serif text-sm mt-1">₹{booking.totalQuote.toLocaleString()}</p>
+                    <p className="font-bold text-[#2d1217] font-serif text-sm mt-1">₹{(booking.totalQuote ?? (booking as any).totalAmount ?? 0).toLocaleString()}</p>
                   </div>
                   <div className="bg-[#fdf8f5] p-3.5 rounded-2xl border border-[#e4d8cf]">
                     <p className="text-[10px] uppercase font-bold tracking-wider text-[#968186]">Commercial Balance</p>
-                    <p className={`font-bold mt-1 ${booking.balanceDue > 0 ? 'text-[#961c2c]' : 'text-[#3e6f48]'}`}>
-                      {booking.balanceDue > 0 ? `₹${booking.balanceDue.toLocaleString()} Due` : 'Fully Paid'}
+                    <p className={`font-bold mt-1 ${(booking.balanceDue ?? 0) > 0 ? 'text-[#961c2c]' : 'text-[#3e6f48]'}`}>
+                      {(booking.balanceDue ?? 0) > 0 ? `₹${(booking.balanceDue ?? 0).toLocaleString()} Due` : 'Fully Paid'}
                     </p>
                   </div>
                 </div>
@@ -245,12 +245,12 @@ export const BookingsView: React.FC = () => {
                         <DollarSign className="w-3.5 h-3.5 text-[#721828]" />
                         <span className="font-bold">Commercial & Deposit Ledger</span>
                       </span>
-                      <span className="text-[#7f6b6f]">Advance: ₹{booking.advanceDepositPaid.toLocaleString()}</span>
+                      <span className="text-[#7f6b6f]">Advance: ₹{(booking.advanceDepositPaid ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-[11px] text-[#7f6b6f] pt-2 border-t border-[#e4d8cf]">
                       <div>
                         <span>Security Deposit: </span>
-                        <span className="font-bold text-[#2d1217]">₹{booking.securityDepositAmount.toLocaleString()}</span>
+                        <span className="font-bold text-[#2d1217]">₹{(booking.securityDepositAmount ?? 0).toLocaleString()}</span>
                       </div>
                       <div>
                         <span>Deposit Status: </span>

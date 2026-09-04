@@ -856,7 +856,7 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       preArrivalInspectionDone: false,
       postCheckoutInspectionDone: false,
       specialRequests: lead.notes || 'Full villa booking with indoor pool and kitchen access.',
-      notes: `Converted from ${lead.source} enquiry. Deposit received: ₹${advanceDepositPaid.toLocaleString()}`,
+      notes: `Converted from ${lead.source} enquiry. Deposit received: ₹${(advanceDepositPaid ?? 0).toLocaleString()}`,
       assignedHostId: lead.assignedStaffId || currentStaff.id,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -906,7 +906,7 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     logActivity({
       type: 'Payment',
       title: `Lead Converted to Confirmed Booking ${newBooking.id}`,
-      description: `Converted ${lead.name} from ${lead.id}. Advance deposit ₹${advanceDepositPaid.toLocaleString()} recorded. Linked to Guest ${guestRecord.id}.`,
+      description: `Converted ${lead.name} from ${lead.id}. Advance deposit ₹${(advanceDepositPaid ?? 0).toLocaleString()} recorded. Linked to Guest ${guestRecord.id}.`,
       relatedLeadId: lead.id,
       relatedBookingId: newBooking.id,
       relatedGuestId: guestRecord.id,

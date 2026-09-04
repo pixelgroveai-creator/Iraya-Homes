@@ -84,7 +84,7 @@ export const LeadConvertModal: React.FC<LeadConvertModalProps> = ({ lead, onClos
               <div>
                 <p className="font-bold text-xs text-[#3d3d2e]">Returning Guest Profile Recognized!</p>
                 <p className="text-[11px] text-[#7a7a6a] mt-0.5">
-                  Matches #{existingGuest.id} ({existingGuest.totalStays} past stays, ₹{existingGuest.lifetimeValue.toLocaleString()} LTV). New booking will link automatically.
+                  Matches #{existingGuest.id} ({existingGuest.totalStays} past stays, ₹{(existingGuest.lifetimeValue ?? 0).toLocaleString()} LTV). New booking will link automatically.
                 </p>
               </div>
             </div>

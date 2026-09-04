@@ -92,7 +92,7 @@ Property: Gomti Nagar, Lucknow (4 BHK + Heated Indoor Pool + Lounge)
 - Arrivals Today: ${kpis.arrivalsToday}
 - Departures Today: ${kpis.departuresToday}
 - In-House Occupancy: ${kpis.inHouseGuests} Guests (${kpis.inHouseParties} party)
-- Pipeline Enquiries: ${kpis.activeLeadsCount || leads.length} active (Value: ₹${kpis.pipelineValue.toLocaleString()})
+- Pipeline Enquiries: ${kpis.activeLeadsCount || leads.length} active (Value: ₹${(kpis.pipelineValue ?? 0).toLocaleString()})
 - Open Maintenance Tickets: ${kpis.openIssuesCount} (${kpis.urgentIssuesCount} urgent)
 - Overdue Tasks: ${kpis.overdueTasks}
 
@@ -186,7 +186,7 @@ ${checklists.map(c => `- ${c.areaName}: ${c.status} (${c.items.filter(i => i.com
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white border border-[#e4d8cf] p-5 rounded-2xl shadow-2xs">
               <p className="text-[10px] uppercase font-bold tracking-wider text-[#968186]">Total Enquiries Pipeline</p>
-              <p className="text-2xl font-serif font-bold text-[#2d1217] mt-1">₹{kpis.pipelineValue.toLocaleString()}</p>
+              <p className="text-2xl font-serif font-bold text-[#2d1217] mt-1">₹{(kpis.pipelineValue ?? 0).toLocaleString()}</p>
               <p className="text-[11px] text-[#7f6b6f] mt-1">{leads.length} total enquiries logged</p>
             </div>
             <div className="bg-white border border-[#e4d8cf] p-5 rounded-2xl shadow-2xs">
