@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useCRM } from '../../context/CRMContext';
 import { Task, TaskPriority, TaskStatus, TaskCategory } from '../../types';
+import { ActiveSearchBanner } from '../common/ActiveSearchBanner';
 
 export const TasksView: React.FC = () => {
   const { 
@@ -59,6 +60,8 @@ export const TasksView: React.FC = () => {
   return (
     <div className="space-y-6">
       
+      <ActiveSearchBanner currentModule="Tasks" resultCount={filteredTasks.length} />
+
       {/* Top Banner */}
       <div className="bg-white border border-[#e4d8cf] rounded-[28px] p-6 sm:p-7 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

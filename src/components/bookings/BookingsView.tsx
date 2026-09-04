@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useCRM } from '../../context/CRMContext';
 import { Booking, BookingStatus } from '../../types';
+import { ActiveSearchBanner } from '../common/ActiveSearchBanner';
 
 const BOOKING_STATUSES: BookingStatus[] = [
   'Hold',
@@ -65,6 +66,8 @@ export const BookingsView: React.FC = () => {
   return (
     <div className="space-y-6">
       
+      <ActiveSearchBanner currentModule="Bookings" resultCount={filteredBookings.length} />
+
       {/* Top Banner */}
       <div className="bg-white border border-[#e4d8cf] rounded-[28px] p-6 sm:p-7 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

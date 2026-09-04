@@ -133,15 +133,15 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
     const matchedIssues = issues.filter(i => 
       i.title.toLowerCase().includes(q) ||
       (i.description && i.description.toLowerCase().includes(q)) ||
-      i.area.toLowerCase().includes(q) ||
-      i.priority.toLowerCase().includes(q) ||
+      i.propertyAreaId.toLowerCase().includes(q) ||
+      i.category.toLowerCase().includes(q) ||
+      i.severity.toLowerCase().includes(q) ||
       i.status.toLowerCase().includes(q)
     ).slice(0, 5);
 
     const matchedInventory = inventoryItems.filter(item => 
       item.name.toLowerCase().includes(q) ||
       item.category.toLowerCase().includes(q) ||
-      item.storageLocation.toLowerCase().includes(q) ||
       item.unit.toLowerCase().includes(q)
     ).slice(0, 5);
 
@@ -243,7 +243,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
           type: 'issue',
           tab: 'issues',
           title: i.title,
-          subtitle: `Area: ${i.area} • Priority: ${i.priority} • Reported: ${i.reportedAt}`,
+          subtitle: `Area: ${i.propertyAreaId} • Priority: ${i.severity} • Cat: ${i.category}`,
           badge: i.status,
           badgeColor: i.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800',
           id: i.id,
@@ -258,9 +258,9 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
           type: 'inventory',
           tab: 'inventory',
           title: item.name,
-          subtitle: `Category: ${item.category} • Location: ${item.storageLocation} • Unit: ${item.unit}`,
-          badge: `In Stock: ${item.currentStock}`,
-          badgeColor: item.currentStock <= item.parLevel ? 'bg-rose-100 text-rose-800' : 'bg-stone-100 text-stone-800',
+          subtitle: `Category: ${item.category} • Unit: ${item.unit} • Par Safety: ${item.safetyThreshold}`,
+          badge: item.category,
+          badgeColor: 'bg-stone-100 text-stone-800',
           id: item.id,
           data: item
         });
@@ -453,7 +453,10 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
                 return (
                   <div
                     key={`${item.type}-${item.id}`}
-                    onClick={() => handleSelectItem(item)}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      handleSelectItem(item);
+                    }}
                     onMouseEnter={() => setSelectedIndex(idx)}
                     className={`p-3 rounded-xl transition-all cursor-pointer flex items-center justify-between gap-3 ${
                       isSelected
@@ -511,8 +514,11 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
                   {quickPicks.map((pick) => (
                     <button
                       key={pick.label}
-                      onClick={() => {
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
                         setSearchQuery(pick.query);
+                        setSelectedIndex(0);
                         inputRef.current?.focus();
                       }}
                       className="px-3 py-1.5 rounded-xl bg-[#f7efe9] hover:bg-[#f2e7df] text-[#2d1217] text-xs font-medium border border-[#e4d8cf] transition-colors cursor-pointer flex items-center gap-1.5"
@@ -542,7 +548,9 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
 
             {searchQuery && (
               <button
-                onClick={() => {
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
                   if (activeTab === 'dashboard') setActiveTab('leads');
                   setIsOpen(false);
                 }}

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useCRM } from '../../context/CRMContext';
 import { Guest, GuestPreference } from '../../types';
+import { ActiveSearchBanner } from '../common/ActiveSearchBanner';
 
 export const GuestsView: React.FC = () => {
   const { guests, bookings, updateGuest, openQuickAction, searchQuery } = useCRM();
@@ -84,6 +85,8 @@ export const GuestsView: React.FC = () => {
   return (
     <div className="space-y-6">
       
+      <ActiveSearchBanner currentModule="Guests" resultCount={filteredGuests.length} />
+
       {/* Top Banner */}
       <div className="bg-white border border-[#e4d8cf] rounded-[28px] p-6 sm:p-7 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

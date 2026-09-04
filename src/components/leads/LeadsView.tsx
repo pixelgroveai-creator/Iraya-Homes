@@ -21,6 +21,7 @@ import {
 import { useCRM } from '../../context/CRMContext';
 import { Lead, LeadStatus, LeadSource } from '../../types';
 import { LeadConvertModal } from '../modals/LeadConvertModal';
+import { ActiveSearchBanner } from '../common/ActiveSearchBanner';
 
 const STAGES: LeadStatus[] = [
   'NEW',
@@ -68,6 +69,8 @@ export const LeadsView: React.FC = () => {
   return (
     <div className="space-y-6">
       
+      <ActiveSearchBanner currentModule="Leads" resultCount={filteredLeads.length} />
+
       {/* Header & Controls Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-[#e4d8cf] rounded-[28px] p-6 sm:p-7 shadow-xs">
         <div>

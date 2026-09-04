@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useCRM } from '../../context/CRMContext';
 import { Issue, IssueSeverity, IssueStatus, IssueCategory, PropertyAreaId } from '../../types';
+import { ActiveSearchBanner } from '../common/ActiveSearchBanner';
 
 export const IssuesView: React.FC = () => {
   const { issues, addIssue, updateIssue, resolveIssue, openQuickAction, searchQuery, staffList } = useCRM();
@@ -50,6 +51,8 @@ export const IssuesView: React.FC = () => {
   return (
     <div className="space-y-6">
       
+      <ActiveSearchBanner currentModule="Maintenance Issues" resultCount={filteredIssues.length} />
+
       {/* Top Banner */}
       <div className="bg-white border border-[#e4d8cf] rounded-[28px] p-6 sm:p-7 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

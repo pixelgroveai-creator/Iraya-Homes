@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useCRM } from '../../context/CRMContext';
 import { InventoryDailyLog } from '../../types';
+import { ActiveSearchBanner } from '../common/ActiveSearchBanner';
 
 interface ItemFormState {
   itemId: string;
@@ -36,7 +37,8 @@ export const InventoryDailyEntry: React.FC = () => {
     getPreviousDayStock, 
     saveBatchInventoryLogs, 
     currentStaff,
-    isSupabaseLive
+    isSupabaseLive,
+    searchQuery
   } = useCRM();
 
   // Anchored default date matching the luxury CRM system timeline (Sept 1, 2026 or current today)
@@ -235,9 +237,22 @@ export const InventoryDailyEntry: React.FC = () => {
     }
   };
 
+  const displayedItems = itemsState.filter(item => {
+    if (!searchQuery || !searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    return (
+      item.itemName.toLowerCase().includes(q) ||
+      item.category.toLowerCase().includes(q) ||
+      item.unit.toLowerCase().includes(q) ||
+      (item.notes && item.notes.toLowerCase().includes(q))
+    );
+  });
+
   return (
     <div className="space-y-6" id="inventory-daily-entry-panel">
       
+      <ActiveSearchBanner currentModule="Inventory Consumables" resultCount={displayedItems.length} />
+
       {/* Header Controls & Summary Bar */}
       <div className="bg-[#f7efe9] p-5 rounded-2xl border border-[#e4d8cf] shadow-xs flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
         <div>
@@ -411,7 +426,14 @@ export const InventoryDailyEntry: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f2e9e4]">
-                {itemsState.map((item, idx) => {
+                {displayedItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-xs text-[#7f6b6f]">
+                      No inventory items found matching &ldquo;{searchQuery}&rdquo;.
+                    </td>
+                  </tr>
+                ) : (
+                  displayedItems.map((item, idx) => {
                   const opening = Number(item.openingStock) || 0;
                   const added = Number(item.addedStock) || 0;
                   const used = Number(item.usedCount) || 0;
@@ -565,7 +587,7 @@ export const InventoryDailyEntry: React.FC = () => {
                       </td>
                     </tr>
                   );
-                })}
+                }))}
               </tbody>
             </table>
           </div>
