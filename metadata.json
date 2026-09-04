@@ -1,0 +1,6 @@
+{
+  "name": "Iraya Homes CRM",
+  "description": "Internal CRM, Daily Operations Tool & Backend Admin Panel for Iraya Homes boutique luxury villa in Gomti Nagar, Lucknow, featuring complete database visibility, real-time sync, and Iraya Buddy AI Personal Assistant.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

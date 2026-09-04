@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <!-- Warm Linen Background -->
+  <rect width="500" height="500" fill="#FCF6F0"/>
+  
+  <!-- Central Palmette Crest -->
+  <g fill="#721828">
+    <path d="M250 80 C250 62 250 55 250 55 C250 55 250 62 250 80 Z" />
+    <path d="M250 60 C251.5 80 253 100 250 115 C247 100 248.5 80 250 60 Z" />
+    <path d="M250 60 C258 75 268 95 268 110 C260 110 252 102 250 95 Z" />
+    <path d="M250 60 C242 75 232 95 232 110 C240 110 248 102 250 95 Z" />
+    <path d="M250 68 C264 84 280 104 282 120 C270 120 258 112 250 100 Z" />
+    <path d="M250 68 C236 84 220 104 218 120 C230 120 242 112 250 100 Z" />
+    <circle cx="250" cy="125" r="6" />
+    <circle cx="250" cy="148" r="4.5" />
+    <path d="M250 162 C256 172 262 180 262 190 C254 188 252 182 250 176 C248 182 246 188 238 190 C238 180 244 172 250 162 Z" />
+    <circle cx="250" cy="158" r="3" />
+  </g>
+
+  <!-- Left Ornate Elephant -->
+  <g stroke="#721828" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M195 138 C201 130 207 118 209 106 C211 98 205 94 197 100 C189 106 185 114 181 120 C177 116 167 110 155 110 C139 110 123 118 111 130 C99 142 91 158 91 174 C91 184 95 190 99 194 C99 206 99 222 101 234 L119 234 C121 224 121 214 121 208 C125 208 135 208 139 208 C139 214 139 224 141 234 L159 234 C161 224 161 212 163 206 C167 208 175 210 181 206 C185 210 189 212 193 214 L203 208 C197 198 191 188 193 174 C199 174 205 168 207 162 C209 156 207 146 195 138 Z" />
+    <path d="M195 138 C203 126 213 110 211 98 C207 90 197 96 191 104 C185 112 183 120 181 126" stroke-width="3.6" />
+    <path d="M191 154 C201 154 207 148 205 140" stroke-width="2.8" />
+    <circle cx="177" cy="128" r="3" fill="#721828" />
+    <path d="M165 122 C173 126 177 134 175 146 C173 158 163 164 155 158 C151 154 151 146 153 138 C155 130 159 124 165 122 Z" fill="#FCF6F0" />
+    <path d="M117 150 C127 144 141 144 153 150 C155 166 153 182 151 192 C139 194 127 194 115 190 C115 178 115 164 117 150 Z" fill="#FCF6F0" stroke-width="2.8" />
+    <path d="M123 158 L147 158 M121 168 L149 168 M119 178 L147 178" stroke-width="2" stroke-dasharray="3 3" />
+    <circle cx="135" cy="168" r="4.5" fill="#721828" />
+  </g>
+
+  <!-- Right Ornate Elephant (Mirrored) -->
+  <g stroke="#721828" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M305 138 C299 130 293 118 291 106 C289 98 295 94 303 100 C311 106 315 114 319 120 C323 116 333 110 345 110 C361 110 377 118 389 130 C401 142 409 158 409 174 C409 184 405 190 401 194 C401 206 401 222 399 234 L381 234 C379 224 379 214 379 208 C375 208 365 208 361 208 C361 214 361 224 359 234 L341 234 C339 224 339 212 337 206 C333 208 325 210 319 206 C315 210 311 212 307 214 L297 208 C303 198 309 188 307 174 C301 174 295 168 293 162 C291 156 293 146 305 138 Z" />
+    <path d="M305 138 C297 126 287 110 289 98 C293 90 303 96 309 104 C315 112 317 120 319 126" stroke-width="3.6" />
+    <path d="M309 154 C299 154 293 148 295 140" stroke-width="2.8" />
+    <circle cx="323" cy="128" r="3" fill="#721828" />
+    <path d="M335 122 C327 126 323 134 325 146 C327 158 337 164 345 158 C349 154 349 146 347 138 C345 130 341 124 335 122 Z" fill="#FCF6F0" />
+    <path d="M383 150 C373 144 359 144 347 150 C345 166 347 182 349 192 C361 194 373 194 385 190 C385 178 385 164 383 150 Z" fill="#FCF6F0" stroke-width="2.8" />
+    <path d="M377 158 L353 158 M379 168 L351 168 M381 178 L353 178" stroke-width="2" stroke-dasharray="3 3" />
+    <circle cx="365" cy="168" r="4.5" fill="#721828" />
+  </g>
+
+  <!-- Typography: IRAYA -->
+  <text x="250" y="350" 
+    font-family="'Playfair Display', Georgia, serif" 
+    font-size="82" 
+    font-weight="700" 
+    letter-spacing="18" 
+    fill="#721828" 
+    text-anchor="middle">
+    IRAYA
+  </text>
+
+  <!-- Typography: THE ART OF UNWINDING -->
+  <text x="250" y="395" 
+    font-family="'Playfair Display', Georgia, serif" 
+    font-size="21" 
+    font-weight="600" 
+    letter-spacing="6" 
+    fill="#721828" 
+    text-anchor="middle">
+    THE ART OF UNWINDING
+  </text>
+</svg>

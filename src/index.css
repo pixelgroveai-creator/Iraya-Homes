@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-main: #fdf8f5;
+    --bg-card: #ffffff;
+    --bg-surface: #f7efe9;
+    --bg-surface-hover: #efe5dd;
+    --bg-surface-active: #e7dbd1;
+    --border-color: #e4d8cf;
+    --border-subtle: #ece2d9;
+    --text-primary: #2d1217;
+    --text-body: #45373a;
+    --text-muted: #7f6b6f;
+    --text-subtle: #968186;
+    --accent-maroon: #721828;
+    --accent-maroon-dark: #520b19;
+    --accent-maroon-light: #fbf2f4;
+    --accent-gold: #c29342;
+    --accent-gold-light: #faf4e8;
+  }
+
+  body {
+    background-color: #fdf8f5;
+    color: #45373a;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, .font-serif-display {
+    font-family: 'Playfair Display', Georgia, serif;
+    color: #2d1217;
+  }
+
+  .font-sans-display {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  }
+}
+
+/* Luxury Royal Maroon & Warm Linen subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #fdf8f5;
+}
+::-webkit-scrollbar-thumb {
+  background: #dbc9be;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #721828;
+}
+
+
