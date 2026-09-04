@@ -18,6 +18,7 @@ import { AdminView } from './components/admin/AdminView';
 import { QuickActionModal } from './components/modals/QuickActionModal';
 import { MorningBriefingModal, EndOfDayModal } from './components/modals/DailySOPModals';
 import { IrayaBuddyModal } from './components/chat/IrayaBuddyModal';
+import { GlobalSearchModal } from './components/layout/GlobalSearchModal';
 import { ToastContainer } from './components/common/ToastContainer';
 
 const MainLayout: React.FC = () => {
@@ -80,6 +81,7 @@ const MainLayout: React.FC = () => {
       <MorningBriefingModal />
       <EndOfDayModal />
       <IrayaBuddyModal />
+      <GlobalSearchModal activeTab={activeTab} setActiveTab={setActiveTab} />
 
     </div>
   );

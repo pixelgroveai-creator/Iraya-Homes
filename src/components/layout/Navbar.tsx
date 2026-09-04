@@ -73,14 +73,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     toggleIrayaBuddy,
     kpis,
     searchQuery,
-    setSearchQuery
+    setSearchQuery,
+    openSearch
   } = useCRM();
 
   const { isAdminUnlocked } = useAdminAuth();
 
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
   const navItems: { id: NavTab; label: string; icon: React.ElementType; badge?: number }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
@@ -124,9 +124,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
           <div className="flex items-center gap-2 sm:gap-2.5">
             {/* Mobile Search Icon Button */}
             <button
-              onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
+              type="button"
+              onClick={() => openSearch()}
               className="md:hidden p-2 rounded-xl bg-white hover:bg-[#fbf2f4] border border-[#e4d8cf] text-[#721828] transition-colors cursor-pointer shadow-2xs"
-              title="Search leads, guests, bookings..."
+              title="Search leads, guests, bookings... (⌘K or /)"
+              aria-label="Open Omnisearch"
             >
               <Search className="w-4 h-4" />
             </button>
@@ -300,29 +302,6 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
           </div>
         </div>
       </div>
-
-      {/* Mobile Search Overlay Bar */}
-      {isMobileSearchOpen && (
-        <div className="md:hidden px-4 py-2.5 bg-[#fdfaf8] border-t border-[#e4d8cf] animate-in fade-in slide-in-from-top-1 duration-150">
-          <div className="flex items-center gap-2">
-            <div className="flex-1">
-              <GlobalSearch 
-                activeTab={activeTab} 
-                setActiveTab={setActiveTab} 
-                isMobileSearchOpen={isMobileSearchOpen}
-                setIsMobileSearchOpen={setIsMobileSearchOpen}
-              />
-            </div>
-            <button
-              onClick={() => setIsMobileSearchOpen(false)}
-              className="p-2 text-[#7f6b6f] hover:text-[#2d1217] rounded-xl hover:bg-[#f2e7df] transition-colors"
-              title="Close mobile search"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Primary Navigation Tabs */}
       <div className="bg-[#fdf8f5] border-t border-[#e4d8cf]">

@@ -160,7 +160,11 @@ interface CRMContextType {
   askIrayaBuddy: (prompt: string) => void;
   clearIrayaBuddyPrompt: () => void;
 
-  // Global search & reset
+  // Global Omnisearch Modal
+  isSearchOpen: boolean;
+  setIsSearchOpen: (open: boolean) => void;
+  openSearch: (initialQuery?: string) => void;
+  closeSearch: () => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   resetToDefaultData: () => void;
@@ -323,7 +327,55 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIrayaBuddyPrompt(null);
   }, []);
 
+  // Global Omnisearch State
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  const openSearch = useCallback((initialQuery?: string) => {
+    if (typeof initialQuery === 'string') {
+      setSearchQuery(initialQuery);
+    }
+    setIsSearchOpen(true);
+  }, []);
+
+  const closeSearch = useCallback(() => {
+    setIsSearchOpen(false);
+  }, []);
+
+  // Global keyboard shortcut: '/' or 'Cmd/Ctrl + K'
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isTypingInField = target && (
+        target.tagName === 'INPUT' || 
+        target.tagName === 'TEXTAREA' || 
+        target.isContentEditable
+      );
+
+      // Check for Cmd+K / Ctrl+K (works even if in input if user wants to switch to global search)
+      if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setIsSearchOpen(prev => !prev);
+        return;
+      }
+
+      // Check for '/' when not in an active input field
+      if (e.key === '/' && !isTypingInField) {
+        e.preventDefault();
+        setIsSearchOpen(true);
+        return;
+      }
+
+      // Escape closes search modal
+      if (e.key === 'Escape' && isSearchOpen) {
+        e.preventDefault();
+        setIsSearchOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [isSearchOpen]);
 
   // Persist State to LocalStorage (as fast local cache / offline-first fallback)
   useEffect(() => {
@@ -1548,6 +1600,10 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       searchQuery,
       setSearchQuery,
+      isSearchOpen,
+      setIsSearchOpen,
+      openSearch,
+      closeSearch,
       resetToDefaultData,
 
       inventoryItems,
