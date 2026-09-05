@@ -305,12 +305,18 @@ export const handler = async (event: any) => {
   }
 
   const rawPath = event.path || '';
-  // Normalize path (strip prefix if netlify routes through /.netlify/functions/api)
-  const path = rawPath.replace(/^\/\.netlify\/functions\/api/, '').replace(/^\/api/, '');
+  // Normalize path (strip prefix if netlify routes through /.netlify/functions/api or /api)
+  let path = rawPath.replace(/^\/\.netlify\/functions\/api/, '').replace(/^\/api/, '');
+  path = (path || '').replace(/\/$/, '') || '/';
+  if (!path.startsWith('/')) {
+    path = '/' + path;
+  }
+
+  const httpMethod = (event.httpMethod || 'GET').toUpperCase();
 
   try {
     // GET /health
-    if (path === '/health' || path === '') {
+    if (path === '/health' || path === '/') {
       return {
         statusCode: 200,
         headers,
@@ -356,8 +362,21 @@ export const handler = async (event: any) => {
     }
 
     // POST /chat
-    if (path === '/chat' && event.httpMethod === 'POST') {
-      const body = event.body ? JSON.parse(event.body) : {};
+    if (path === '/chat' && httpMethod === 'POST') {
+      let body: any = {};
+      try {
+        const rawBody = event.isBase64Encoded && event.body
+          ? Buffer.from(event.body, 'base64').toString('utf-8')
+          : event.body;
+        body = typeof rawBody === 'string' ? JSON.parse(rawBody) : (rawBody || {});
+      } catch (parseErr) {
+        console.error('Failed to parse request body in Netlify function:', parseErr);
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Invalid JSON body in request' }),
+        };
+      }
       const { messages, userRole, crmSnapshot } = body;
 
       if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -397,7 +416,7 @@ LIVE CRM STATUS & PROPERTY DATA (Use this for questions about current guests, bo
 
         for (const modelCandidate of CANDIDATE_MODELS) {
           try {
-            const response = await ai.models.generateContent({
+            const generatePromise = ai.models.generateContent({
               model: modelCandidate,
               contents: contents,
               config: {
@@ -406,6 +425,12 @@ LIVE CRM STATUS & PROPERTY DATA (Use this for questions about current guests, bo
                 maxOutputTokens: 1200,
               },
             });
+
+            const timeoutPromise = new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error(`Timeout on ${modelCandidate}`)), 6500)
+            );
+
+            const response = await Promise.race([generatePromise, timeoutPromise]);
 
             if (response.text) {
               generatedReply = response.text;

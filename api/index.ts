@@ -372,7 +372,7 @@ LIVE CRM STATUS & PROPERTY DATA (Use this for questions about current guests, bo
 
       for (const modelCandidate of CANDIDATE_MODELS) {
         try {
-          const response = await ai.models.generateContent({
+          const generatePromise = ai.models.generateContent({
             model: modelCandidate,
             contents: contents,
             config: {
@@ -381,6 +381,12 @@ LIVE CRM STATUS & PROPERTY DATA (Use this for questions about current guests, bo
               maxOutputTokens: 1200,
             },
           });
+
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error(`Timeout on ${modelCandidate}`)), 6500)
+          );
+
+          const response = await Promise.race([generatePromise, timeoutPromise]);
 
           if (response.text) {
             generatedReply = response.text;

@@ -19,13 +19,14 @@ import {
   Info
 } from 'lucide-react';
 import { useCRM } from '../../context/CRMContext';
+import { generateClientKnowledgeResponse, CRMSnapshot } from '../../utils/chatKnowledge';
 
 interface ChatMessage {
   id: string;
   role: 'user' | 'model';
   content: string;
   timestamp: string;
-  source?: 'gemini-3.8-flash' | 'knowledge-base';
+  source?: 'gemini-3.8-flash' | 'gemini-3.1-flash-lite' | 'knowledge-base' | string;
 }
 
 const SUGGESTED_TOPICS = [
@@ -63,7 +64,11 @@ export const IrayaBuddyModal: React.FC = () => {
     toggleIrayaBuddy,
     irayaBuddyPrompt, 
     clearIrayaBuddyPrompt,
-    currentStaff
+    currentStaff,
+    bookings,
+    tasks,
+    issues,
+    leads
   } = useCRM();
 
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -113,6 +118,28 @@ How may I assist you today? Feel free to type any question or pick a suggested t
     }
   }, [irayaBuddyPrompt, isIrayaBuddyOpen]);
 
+  // Build live snapshot of CRM state for bot context
+  const getCRMSnapshot = (): CRMSnapshot => {
+    return {
+      inHouseGuests: (bookings || [])
+        .filter(b => b.status === 'Checked-in' || b.status === 'confirmed')
+        .map(b => `${b.guestName} (${b.guestCount} Guests, ${b.suites?.join(', ') || 'Villa Buyout'})`),
+      upcomingArrivals: (bookings || [])
+        .filter(b => b.status === 'confirmed')
+        .map(b => `${b.guestName} (${b.checkInDate} to ${b.checkOutDate})`),
+      urgentTasks: (tasks || [])
+        .filter(t => t.status !== 'completed')
+        .slice(0, 5)
+        .map(t => `${t.title} [${t.priority || 'Normal'}]`),
+      openIssues: (issues || [])
+        .filter(i => i.status !== 'resolved')
+        .map(i => `${i.title} (${i.area || 'Villa'}, ${i.severity || 'Medium'})`),
+      pendingLeadsCount: (leads || []).filter(l => l.status === 'New' || l.status === 'Contacted').length,
+      activeStaffName: currentStaff?.name || 'Kunal Singh',
+      activeStaffRole: currentStaff?.role || 'Staff Lead'
+    };
+  };
+
   const handleSendMessage = async (textToSend?: string) => {
     const query = (textToSend || inputMessage).trim();
     if (!query || isLoading) return;
@@ -130,56 +157,61 @@ How may I assist you today? Feel free to type any question or pick a suggested t
     setInputMessage('');
     setIsLoading(true);
 
+    const crmSnapshot = getCRMSnapshot();
+
     try {
-      // Call server endpoint with conversation history
+      // Create an abort controller with a 10s timeout so the client never hangs
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
+        signal: controller.signal,
         body: JSON.stringify({
           messages: newMessages.map(m => ({
             role: m.role,
             content: m.content
           })),
-          userRole: currentStaff?.role || 'Staff'
+          userRole: currentStaff?.role || 'Staff',
+          crmSnapshot
         })
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`Server responded with ${response.status}`);
       }
 
       const data = await response.json();
+      if (!data.reply) {
+        throw new Error('Empty response received');
+      }
+
       const botMsg: ChatMessage = {
         id: `bot-${Date.now()}`,
         role: 'model',
-        content: data.reply || "I apologize, but I was unable to generate a response. Please try again.",
+        content: data.reply,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        source: data.source
+        source: data.source || 'gemini'
       };
 
       setMessages(prev => [...prev, botMsg]);
     } catch (err: any) {
-      console.error('Chat error:', err);
-      // Fallback message if server endpoint fails completely
-      const fallbackMsg: ChatMessage = {
+      console.warn('API call resolved to client knowledge engine:', err?.message || err);
+      // Seamlessly generate accurate response from client knowledge engine with live CRM context
+      const fallbackReply = generateClientKnowledgeResponse(query, crmSnapshot);
+      const botMsg: ChatMessage = {
         id: `bot-${Date.now()}`,
         role: 'model',
-        content: `### 🌿 Iraya Buddy Notice
-
-I am temporarily unable to reach the cloud server, but here is generic assistance:
-
-- **Iraya Homes Location**: Vipul Khand, Gomti Nagar, Lucknow, Uttar Pradesh.
-- **Villa Highlights**: 4 luxury suites, private swimming pool, private lawn, on-call chef, 100% power backup.
-- **Check-in / Check-out**: 2:00 PM / 11:00 AM.
-- **Staff Support**: For urgent villa assistance, please contact the manager on duty or review the SOP tabs.
-
-Please try sending your message again shortly.`,
+        content: fallbackReply,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         source: 'knowledge-base'
       };
-      setMessages(prev => [...prev, fallbackMsg]);
+      setMessages(prev => [...prev, botMsg]);
     } finally {
       setIsLoading(false);
     }
@@ -211,7 +243,7 @@ Aadab! I am **Iraya Buddy**, your AI Personal Assistant. Ask me anything about I
     ]);
   };
 
-  // Render markdown formatting safely (bold, headings, bullet points, numbered lists)
+  // Render markdown formatting safely (headings, bold, bullet points, numbered lists, dividers)
   const renderFormattedContent = (content: string) => {
     const lines = content.split('\n');
 
@@ -220,22 +252,45 @@ Aadab! I am **Iraya Buddy**, your AI Personal Assistant. Ask me anything about I
         {lines.map((line, idx) => {
           const trimmed = line.trim();
 
-          if (trimmed.startsWith('### ')) {
+          // H1
+          if (trimmed.startsWith('# ')) {
+            const headingText = trimmed.replace(/^#\s+/, '').replace(/^\*\*|\*\*$/g, '');
+            return (
+              <h3 key={idx} className="font-serif font-bold text-base text-[#2d1217] pt-1">
+                {headingText}
+              </h3>
+            );
+          }
+          // H2
+          if (trimmed.startsWith('## ')) {
+            const headingText = trimmed.replace(/^##\s+/, '').replace(/^\*\*|\*\*$/g, '');
             return (
               <h4 key={idx} className="font-serif font-bold text-sm text-[#2d1217] pt-1">
-                {trimmed.replace('### ', '')}
+                {headingText}
               </h4>
             );
           }
+          // H3
+          if (trimmed.startsWith('### ')) {
+            const headingText = trimmed.replace(/^###\s+/, '').replace(/^\*\*|\*\*$/g, '');
+            return (
+              <h4 key={idx} className="font-serif font-bold text-sm text-[#2d1217] pt-1">
+                {headingText}
+              </h4>
+            );
+          }
+          // H4
           if (trimmed.startsWith('#### ')) {
+            const headingText = trimmed.replace(/^####\s+/, '').replace(/^\*\*|\*\*$/g, '');
             return (
               <h5 key={idx} className="font-serif font-semibold text-xs text-[#721828] pt-1 uppercase tracking-wide">
-                {trimmed.replace('#### ', '')}
+                {headingText}
               </h5>
             );
           }
-          if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-            const itemText = trimmed.replace(/^[-*]\s+/, '');
+          // Bullet list items
+          if (/^[-*•]\s+/.test(trimmed)) {
+            const itemText = trimmed.replace(/^[-*•]\s+/, '');
             return (
               <div key={idx} className="flex items-start gap-1.5 pl-1 text-[#45373a]">
                 <span className="text-[#c29342] shrink-0 leading-5">•</span>
@@ -243,8 +298,9 @@ Aadab! I am **Iraya Buddy**, your AI Personal Assistant. Ask me anything about I
               </div>
             );
           }
-          if (/^\d+\.\s+/.test(trimmed)) {
-            const numMatch = trimmed.match(/^(\d+)\.\s+(.*)/);
+          // Numbered list items
+          if (/^\d+[\.)]\s+/.test(trimmed)) {
+            const numMatch = trimmed.match(/^(\d+)[\.)]\s+(.*)/);
             if (numMatch) {
               return (
                 <div key={idx} className="flex items-start gap-1.5 pl-1 text-[#45373a]">
@@ -254,9 +310,11 @@ Aadab! I am **Iraya Buddy**, your AI Personal Assistant. Ask me anything about I
               );
             }
           }
-          if (trimmed === '---') {
+          // Horizontal rule
+          if (trimmed === '---' || trimmed === '***' || trimmed === '___') {
             return <hr key={idx} className="border-t border-[#e4d8cf] my-2" />;
           }
+          // Empty line
           if (!trimmed) {
             return <div key={idx} className="h-1" />;
           }
@@ -269,11 +327,11 @@ Aadab! I am **Iraya Buddy**, your AI Personal Assistant. Ask me anything about I
     );
   };
 
-  // Helper for inline bold / code
+  // Helper for inline bold / italics / code
   const formatInlineMarkdown = (text: string) => {
     return text
       .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-[#2d1217]">$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
+      .replace(/\*(.*?)\*/g, '<em class="italic text-[#45373a]">$1</em>')
       .replace(/`([^`]+)`/g, '<code class="bg-[#f2e6de] px-1 py-0.5 rounded text-[11px] font-mono text-[#721828]">$1</code>');
   };
 
