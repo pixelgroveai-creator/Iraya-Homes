@@ -321,6 +321,57 @@ A curated itinerary from our concierge team:
 ---`;
   }
 
+  // 12. Generic Queries: Greetings & Pleasantries
+  if (query === 'hi' || query === 'hello' || query === 'hey' || query === 'aadab' || query === 'namaste' || query.includes('good morning') || query.includes('good evening') || query.includes('how are you')) {
+    return `### 🌸 Aadab & Warm Greetings!
+
+I am **Iraya Buddy**, your AI Personal Assistant. I am doing wonderful and am delighted to assist you today!
+
+Whether you need information about **Iraya Homes Luxury Villa** (tariffs, amenities, suites, booking policies), **Lucknow heritage & food trails**, live **CRM operations**, or **any general knowledge question**, I am at your service. 
+
+What can I help you with right now?`;
+  }
+
+  // 13. Generic Queries: Humor & Jokes
+  if (query.includes('joke') || query.includes('funny') || query.includes('laugh')) {
+    return `### 😄 Here is a smile for your day!
+
+> *Why did the hotel guest bring a ladder to check-in?*  
+> *Because they heard the hospitality at Iraya Homes was on a whole other level!*
+
+And here's a tech one:
+> *Why did the developer go swimming?*  
+> *Because they wanted to test their code in a pool without bugs!*
+
+Would you like another one, a travel trivia fact, or help with something else?`;
+  }
+
+  // 14. Generic Queries: Poetry & Chai / Nawabi Shayari
+  if (query.includes('poem') || query.includes('poetry') || query.includes('shayari') || query.includes('chai')) {
+    return `### ☕ An Ode to Morning Chai & Lucknow's Grace
+
+*Subah ki dhoop, aur haath mein garam chai ki pyali,*  
+*Hawaon mein ghuli Lucknow ki meethi tehzeeb nirali.*  
+*Gomti ke kinare, parindon ka naya naghma,*  
+*Sukoon ki talash thi jahan, wahan Iraya ka aangan mila.*
+
+*(The morning sun with a warm kulhad of chai in hand,*  
+*Sweet courteous Awadhi breeze gracing the serene land.*  
+*Beside the tranquil Gomti river, nature begins its hum,*  
+*Where true peace was sought, Iraya's embrace has come.)*`;
+  }
+
+  // 15. Generic Queries: General Science & Facts
+  if (query.includes('speed of light') || query.includes('photosynthesis') || query.includes('boiling point') || query.includes('science')) {
+    return `### 🔬 Scientific Quick Reference
+
+- **Speed of Light**: Exactly **299,792,458 meters per second** (~300,000 km/s or ~186,282 miles/s) in a vacuum.
+- **Photosynthesis**: The biological process where green plants, algae, and cyanobacteria convert sunlight, carbon dioxide ($CO_2$), and water ($H_2O$) into glucose ($C_6H_{12}O_6$) and oxygen ($O_2$).
+- **Boiling Point of Water**: **100°C (212°F)** at standard sea-level atmospheric pressure (1 atm / 101.3 kPa).
+
+Feel free to ask me any other science, mathematics, or open-domain question!`;
+  }
+
   // Default smart fallback (gracious Awadhi assistant overview)
   return `### 🌟 Aadab! I am Iraya Buddy
 

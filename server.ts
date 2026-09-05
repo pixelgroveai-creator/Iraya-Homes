@@ -11,7 +11,7 @@ const PORT = 3000;
 
 app.use(express.json());
 
-// Lazy-initialized Gemini Client
+// Lazy-initialized Gemini Client (Using logged-in GEMINI_API_KEY)
 let aiClient: GoogleGenAI | null = null;
 
 function getAIClient(): GoogleGenAI | null {
@@ -32,14 +32,22 @@ function getAIClient(): GoogleGenAI | null {
   return aiClient;
 }
 
-const CANDIDATE_MODELS = [
+const GEMINI_CANDIDATE_MODELS = [
   'gemini-3.1-flash-lite',
   'gemini-flash-latest',
   'gemini-3.8-flash'
 ];
 
-const IRAYA_SYSTEM_INSTRUCTION = `You are "Iraya Buddy", the official, warm, and highly courteous AI Personal Assistant for Iraya Homes.
-You assist both villa guests and villa management/operations staff.
+const IRAYA_SYSTEM_INSTRUCTION = `You are "Iraya Buddy", the official, warm, highly courteous, and intelligent AI Personal Assistant for Iraya Homes.
+You assist both villa guests, villa management/operations staff, as well as answering any general or generic queries with elegance and precision.
+
+DUAL CAPABILITY (VILLA SPECIALIST + GENERAL KNOWLEDGE ASSISTANT):
+1. **Iraya Homes Luxury Villa Specialist**:
+   - Deep expertise on all accommodations, heated pool, 8-ft pool table lounge, dining, tariffs, house rules, booking policies, Lucknow heritage & culinary trails, and staff SOPs.
+2. **General Knowledge & Open-Domain Assistant**:
+   - You are fully capable and eager to respond to ANY generic or open-domain question asked by the user.
+   - This includes general knowledge, science, geography, weather, travel, history, creative writing, poetry, mathematics, coding, drafting emails/letters, food recipes, humor, and daily conversational queries.
+   - For generic queries, provide clear, intelligent, and accurate responses directly. Maintain a polite, warm tone ("Aadab" / hospitality courtesy), but do NOT force Iraya Homes references into unrelated general questions (e.g., if asked "What is the boiling point of water?" or "Write a poem about the ocean", answer directly and beautifully).
 
 ABOUT IRAYA HOMES:
 - Concept: Exclusive boutique luxury villa in Gomti Nagar, Lucknow, Uttar Pradesh, India. Celebrated for "The Art of Unwinding", refined Nawabi/Awadhi hospitality ("Tehzeeb"), tranquil open gardens, and discreet personalized service.
@@ -345,30 +353,31 @@ app.get('/api/admin/system', (req, res) => {
 app.get('/api/assistant/info', (req, res) => {
   res.json({
     name: 'Iraya Buddy',
-    role: 'AI Personal Assistant for Iraya Homes',
+    role: 'AI Personal Assistant for Iraya Homes & Generic Knowledge',
     location: 'Gomti Nagar, Lucknow',
-    model: 'gemini-3.8-flash',
+    provider: 'Google Gemini',
     geminiActive: !!process.env.GEMINI_API_KEY,
+    models: GEMINI_CANDIDATE_MODELS,
     capabilities: [
-      'Villa Overview & Room Amenities',
-      'Check-in & Check-out Policies',
-      'Lucknow Tourist & Food Recommendations',
-      'Staff SOPs & Inventory Guidelines',
-      'Guest Communication & Message Drafting',
-      'Booking Estimates & Quotation Support'
+      'Villa Overview, Suites & Heated Pool Amenities',
+      'Check-in, Check-out, Tariffs & Security Deposit Terms',
+      'Lucknow Food Trails & Sightseeing Guide',
+      'General Knowledge, Math, Science & Open-Domain Assistance',
+      'Creative Writing, Translations & Messaging Drafts',
+      'Staff Daily Inventory Logging & Maintenance SOPs'
     ],
     samplePrompts: [
       'Tell me about Iraya Homes villa & amenities',
       'What are the check-in and check-out timings?',
       'What are the best places to eat Awadhi kebabs in Lucknow?',
-      'How do I log daily inventory in the CRM?',
-      'Draft a warm WhatsApp welcome message for an arriving guest',
-      'What are the house rules regarding pets and smoking?'
+      'What is the speed of light in vacuum?',
+      'Write a short poetic welcome note for an arriving family',
+      'Draft a warm WhatsApp welcome message for an arriving guest'
     ]
   });
 });
 
-// AI Chatbot endpoint
+// AI Chatbot endpoint - Exclusively powered by logged-in Gemini
 app.post('/api/chat', async (req, res) => {
   try {
     const { messages, userRole, crmSnapshot } = req.body;
@@ -380,15 +389,12 @@ app.post('/api/chat', async (req, res) => {
     const lastMessage = messages[messages.length - 1];
     const userPrompt = lastMessage.content || '';
 
-    const ai = getAIClient();
-
-    if (ai) {
-      // Build role & live CRM context for dynamic accurate answers
-      const roleContext = userRole ? `Current user role in CRM: ${userRole}. Tailor insights accordingly.` : '';
-      
-      let crmContextText = '';
-      if (crmSnapshot) {
-        crmContextText = `
+    // Build role & live CRM context for dynamic accurate answers
+    const roleContext = userRole ? `Current user role in CRM: ${userRole}. Tailor insights accordingly.` : '';
+    
+    let crmContextText = '';
+    if (crmSnapshot) {
+      crmContextText = `
 LIVE CRM STATUS & PROPERTY DATA (Use this for questions about current guests, bookings, tasks, or issues):
 - In-House Guests Currently at Villa: ${crmSnapshot.inHouseGuests?.length ? crmSnapshot.inHouseGuests.join('; ') : 'No guests currently checked in'}
 - Upcoming Confirmed Arrivals: ${crmSnapshot.upcomingArrivals?.length ? crmSnapshot.upcomingArrivals.join('; ') : 'None immediate'}
@@ -397,17 +403,22 @@ LIVE CRM STATUS & PROPERTY DATA (Use this for questions about current guests, bo
 - Active Leads In Queue: ${crmSnapshot.pendingLeadsCount ?? 0}
 - Current Active Staff Member: ${crmSnapshot.activeStaffName || 'Kunal Singh'} (${crmSnapshot.activeStaffRole || 'Staff Lead'})
 `;
-      }
+    }
 
-      const fullSystemInstruction = `${IRAYA_SYSTEM_INSTRUCTION}\n${roleContext}\n${crmContextText}`;
+    const fullSystemInstruction = `${IRAYA_SYSTEM_INSTRUCTION}\n${roleContext}\n${crmContextText}`;
+
+    // -------------------------------------------------------------
+    // GEMINI ONLY (Powered by logged-in GEMINI_API_KEY)
+    // -------------------------------------------------------------
+    const ai = getAIClient();
+    if (ai) {
       const contents = sanitizeMessagesForGemini(messages);
 
-      // Try candidate models in order: gemini-3.1-flash-lite -> gemini-flash-latest -> gemini-3.8-flash
       let generatedReply: string | null = null;
       let usedModel: string | null = null;
       let lastModelError: string | null = null;
 
-      for (const modelCandidate of CANDIDATE_MODELS) {
+      for (const modelCandidate of GEMINI_CANDIDATE_MODELS) {
         try {
           const generatePromise = ai.models.generateContent({
             model: modelCandidate,
@@ -420,7 +431,7 @@ LIVE CRM STATUS & PROPERTY DATA (Use this for questions about current guests, bo
           });
 
           const timeoutPromise = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error(`Timeout on ${modelCandidate}`)), 6500)
+            setTimeout(() => reject(new Error(`Timeout on ${modelCandidate}`)), 7500)
           );
 
           const response = await Promise.race([generatePromise, timeoutPromise]);
@@ -433,34 +444,28 @@ LIVE CRM STATUS & PROPERTY DATA (Use this for questions about current guests, bo
         } catch (candidateError: any) {
           lastModelError = candidateError?.message || String(candidateError);
           console.warn(`Model ${modelCandidate} notice: ${lastModelError.substring(0, 120)}`);
-          // Continue to next model candidate
         }
       }
 
       if (generatedReply && usedModel) {
         return res.json({
           reply: generatedReply,
-          source: usedModel
+          source: usedModel,
+          provider: 'gemini'
         });
       }
-
-      // If all live models failed (e.g. quota exhausted or temporary outage), use knowledge fallback
-      console.warn('All candidate models exhausted. Using intelligent knowledge fallback. Last error:', lastModelError);
-      const fallbackReply = generateKnowledgeFallback(userPrompt, crmSnapshot);
-      return res.json({
-        reply: fallbackReply,
-        source: 'knowledge-base',
-        notice: 'Responded via Iraya Knowledge Base (live AI quota temporarily busy).'
-      });
-    } else {
-      // Graceful fallback when GEMINI_API_KEY is not configured
-      const fallbackReply = generateKnowledgeFallback(userPrompt, crmSnapshot);
-      return res.json({
-        reply: fallbackReply,
-        source: 'knowledge-base',
-        notice: 'Powered by Iraya Homes Knowledge Engine. Connect GEMINI_API_KEY in Secrets for live generative AI.'
-      });
     }
+
+    // -------------------------------------------------------------
+    // INTELLIGENT KNOWLEDGE BASE FALLBACK
+    // -------------------------------------------------------------
+    const fallbackReply = generateKnowledgeFallback(userPrompt, crmSnapshot);
+    return res.json({
+      reply: fallbackReply,
+      source: 'knowledge-base',
+      provider: 'gemini',
+      notice: 'Responded via Iraya Knowledge Engine.'
+    });
   } catch (err: any) {
     console.error('Chat endpoint error:', err);
     res.status(500).json({

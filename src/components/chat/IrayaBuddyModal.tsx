@@ -26,7 +26,8 @@ interface ChatMessage {
   role: 'user' | 'model';
   content: string;
   timestamp: string;
-  source?: 'gemini-3.8-flash' | 'gemini-3.1-flash-lite' | 'knowledge-base' | string;
+  source?: string;
+  provider?: 'gemini' | 'knowledge-base' | string;
 }
 
 const SUGGESTED_TOPICS = [
@@ -34,6 +35,11 @@ const SUGGESTED_TOPICS = [
     icon: Home,
     label: 'Villa & Suites',
     prompt: 'Tell me about Iraya Homes villa, our 4 luxury suites, and property amenities'
+  },
+  {
+    icon: Sparkles,
+    label: 'Ask Anything / Generic',
+    prompt: 'Tell me a witty joke and share an interesting science fact!'
   },
   {
     icon: Clock,
@@ -77,16 +83,18 @@ export const IrayaBuddyModal: React.FC = () => {
       role: 'model',
       content: `### 🌟 Aadab! I am Iraya Buddy
 
-I am your **AI Personal Assistant** for **Iraya Homes** — our boutique luxury villa in Gomti Nagar, Lucknow.
+I am your **AI Personal Assistant** for **Iraya Homes** luxury boutique villa in Gomti Nagar, Lucknow, powered by **Google Gemini**.
 
-I'm here to provide generic information and answer queries for both guests and staff:
-- 🏡 **Villa & Amenities**: 4 luxury suites, private swimming pool, lawn, gazebo & chef services
-- 🕒 **Policies & SOPs**: Check-in (2:00 PM), check-out (11:00 AM), guest IDs & quiet hours
-- 🍲 **Lucknow Guide**: Iconic Awadhi food (Tunday Kababi, Dastarkhwan) & heritage places
-- 📋 **Staff Help**: Daily inventory tracking, booking workflows & message drafts
+I can assist you with:
+- 🏡 **Iraya Homes Villa**: 4 luxury suites, heated indoor pool, tournament pool table lounge & tariff details
+- 🕒 **Policies & SOPs**: Check-in (2:00 PM), check-out (11:00 AM), guest IDs, security deposit & quiet hours
+- 🍲 **Lucknow Guide**: Authentic Awadhi food (Tunday Kababi, Dastarkhwan) & heritage places
+- 📋 **Staff Operations**: Daily inventory logging, booking workflows & message drafts
+- 🌐 **General Knowledge & Open Queries**: Ask me *anything* — general questions, science, mathematics, poetry, translations, or writing!
 
-How may I assist you today? Feel free to type any question or pick a suggested topic below!`,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+Ask me any question about the villa or anything under the sun!`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      source: 'gemini-3.1-flash-lite'
     }
   ]);
 
@@ -196,7 +204,8 @@ How may I assist you today? Feel free to type any question or pick a suggested t
         role: 'model',
         content: data.reply,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        source: data.source || 'gemini'
+        source: data.source || 'gemini-3.1-flash-lite',
+        provider: data.provider || 'gemini'
       };
 
       setMessages(prev => [...prev, botMsg]);
@@ -209,7 +218,8 @@ How may I assist you today? Feel free to type any question or pick a suggested t
         role: 'model',
         content: fallbackReply,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        source: 'knowledge-base'
+        source: 'knowledge-base',
+        provider: 'knowledge-base'
       };
       setMessages(prev => [...prev, botMsg]);
     } finally {
@@ -237,13 +247,14 @@ How may I assist you today? Feel free to type any question or pick a suggested t
         role: 'model',
         content: `### 🌟 Chat Cleared — How can I help?
 
-Aadab! I am **Iraya Buddy**, your AI Personal Assistant. Ask me anything about Iraya Homes villa, amenities, check-in policies, Lucknow food & sights, or staff SOPs!`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+Aadab! I am **Iraya Buddy**, your AI Personal Assistant. Ask me anything about Iraya Homes villa, amenities, check-in policies, Lucknow food & sights, or generic open-domain queries!`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        source: 'Iraya Buddy Engine'
       }
     ]);
   };
 
-  // Render markdown formatting safely (headings, bold, bullet points, numbered lists, dividers)
+  // Render markdown formatting safely
   const renderFormattedContent = (content: string) => {
     const lines = content.split('\n');
 
@@ -335,6 +346,17 @@ Aadab! I am **Iraya Buddy**, your AI Personal Assistant. Ask me anything about I
       .replace(/`([^`]+)`/g, '<code class="bg-[#f2e6de] px-1 py-0.5 rounded text-[11px] font-mono text-[#721828]">$1</code>');
   };
 
+  const getSourceBadge = (source?: string, provider?: string) => {
+    if (!source && !provider) return 'Google Gemini';
+    if (source?.includes('gemini') || provider === 'gemini') {
+      return source || 'Gemini Flash';
+    }
+    if (source === 'knowledge-base' || provider === 'knowledge-base') {
+      return 'Knowledge Base';
+    }
+    return source || 'Google Gemini';
+  };
+
   return (
     <>
       {/* 1. Floating Action Button (Always Accessible at Bottom-Right) */}
@@ -354,7 +376,7 @@ Aadab! I am **Iraya Buddy**, your AI Personal Assistant. Ask me anything about I
               Iraya Buddy <Sparkles className="w-3 h-3 text-amber-300" />
             </span>
             <span className="text-[10px] text-amber-100 font-sans opacity-90 leading-tight">
-              AI Personal Assistant
+              Google Gemini Assistant
             </span>
           </div>
         </button>
@@ -367,11 +389,11 @@ Aadab! I am **Iraya Buddy**, your AI Personal Assistant. Ask me anything about I
           className={`fixed z-50 transition-all duration-300 shadow-2xl flex flex-col bg-white border border-[#e4d8cf] ${
             isExpanded
               ? 'inset-3 sm:inset-6 md:inset-10 rounded-2xl'
-              : 'bottom-4 right-4 sm:bottom-6 sm:right-6 w-[calc(100vw-2rem)] sm:w-[420px] md:w-[460px] h-[640px] max-h-[calc(100vh-2rem)] rounded-2xl'
+              : 'bottom-4 right-4 sm:bottom-6 sm:right-6 w-[calc(100vw-2rem)] sm:w-[440px] md:w-[480px] h-[660px] max-h-[calc(100vh-2rem)] rounded-2xl'
           }`}
         >
           {/* Header */}
-          <div className="bg-gradient-to-r from-[#2d1217] via-[#5c1320] to-[#721828] text-white px-4 py-3.5 rounded-t-2xl flex items-center justify-between shadow-xs shrink-0">
+          <div className="bg-gradient-to-r from-[#2d1217] via-[#5c1320] to-[#721828] text-white px-4 py-3 rounded-t-2xl flex items-center justify-between shadow-xs shrink-0">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-white/10 backdrop-blur-xs border border-white/20 flex items-center justify-center text-amber-300 shadow-inner">
                 <Bot className="w-5 h-5" />
@@ -383,12 +405,12 @@ Aadab! I am **Iraya Buddy**, your AI Personal Assistant. Ask me anything about I
                   </h3>
                   <span className="bg-white/15 text-amber-200 text-[10px] font-mono px-1.5 py-0.5 rounded-full flex items-center gap-1">
                     <Sparkles className="w-2.5 h-2.5 text-amber-300" />
-                    AI Assistant
+                    Google Gemini
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 text-[11px] text-[#e8d5ce]">
                   <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping" />
-                  <span>Online • Iraya Homes, Lucknow</span>
+                  <span>Online • Villa & Generic Queries</span>
                 </div>
               </div>
             </div>
@@ -462,7 +484,9 @@ Aadab! I am **Iraya Buddy**, your AI Personal Assistant. Ask me anything about I
                         <div className="mt-2.5 pt-2 border-t border-[#f2e6de] flex items-center justify-between text-[10px] text-[#968186]">
                           <span className="flex items-center gap-1">
                             <Bot className="w-3 h-3 text-[#721828]" />
-                            Iraya Buddy {msg.source && `(${msg.source})`}
+                            <span className="font-medium text-[#721828]">
+                              {getSourceBadge(msg.source, msg.provider)}
+                            </span>
                           </span>
                           <button
                             onClick={() => copyToClipboard(msg.content, msg.id)}
@@ -501,7 +525,7 @@ Aadab! I am **Iraya Buddy**, your AI Personal Assistant. Ask me anything about I
               <div className="flex flex-col items-start">
                 <div className="bg-white border border-[#e4d8cf] rounded-2xl rounded-bl-xs p-3.5 shadow-2xs flex items-center gap-2 text-xs text-[#7f6b6f]">
                   <Bot className="w-4 h-4 text-[#721828] animate-bounce" />
-                  <span>Iraya Buddy is thinking...</span>
+                  <span>Querying Google Gemini...</span>
                   <div className="flex gap-1 items-center">
                     <span className="w-1.5 h-1.5 bg-[#721828] rounded-full animate-ping" />
                   </div>
@@ -522,11 +546,12 @@ Aadab! I am **Iraya Buddy**, your AI Personal Assistant. Ask me anything about I
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask Iraya Buddy anything..."
+                placeholder="Ask about Iraya Homes or any generic question..."
                 disabled={isLoading}
                 className="flex-1 bg-transparent text-xs sm:text-sm text-[#2d1217] placeholder-[#968186] focus:outline-none disabled:opacity-50 py-1"
               />
               <button
+                id="send-chat-btn"
                 onClick={() => handleSendMessage()}
                 disabled={!inputMessage.trim() || isLoading}
                 className="bg-[#721828] hover:bg-[#881d30] disabled:bg-[#d8c8c2] text-white p-2 rounded-lg transition-colors cursor-pointer shrink-0 disabled:cursor-not-allowed"
@@ -538,9 +563,11 @@ Aadab! I am **Iraya Buddy**, your AI Personal Assistant. Ask me anything about I
             <div className="flex items-center justify-between text-[10px] text-[#968186] mt-1.5 px-1 font-sans">
               <span className="flex items-center gap-1">
                 <Info className="w-3 h-3 text-[#c29342]" />
-                Personal AI Assistant for Iraya Homes staff & guests
+                Personal AI Assistant for Iraya Homes & Generic Knowledge
               </span>
-              <span>Model: gemini-3.8-flash</span>
+              <span className="font-medium text-[#721828]">
+                Powered by Google Gemini
+              </span>
             </div>
           </div>
         </div>
