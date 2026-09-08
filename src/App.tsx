@@ -13,8 +13,10 @@ import { IssuesView } from './components/issues/IssuesView';
 import { ActivitiesView } from './components/activities/ActivitiesView';
 import { AnalyticsView } from './components/analytics/AnalyticsView';
 import { InventoryView } from './components/inventory/InventoryView';
+import { CommercialsView } from './components/commercials/CommercialsView';
 import { SchemaView } from './components/settings/SchemaView';
 import { AdminView } from './components/admin/AdminView';
+import { CommercialsProvider } from './context/CommercialsContext';
 import { QuickActionModal } from './components/modals/QuickActionModal';
 import { MorningBriefingModal, EndOfDayModal } from './components/modals/DailySOPModals';
 import { IrayaBuddyModal } from './components/chat/IrayaBuddyModal';
@@ -50,6 +52,7 @@ const MainLayout: React.FC = () => {
         {activeTab === 'dashboard' && <DashboardView setActiveTab={setActiveTab} />}
         {activeTab === 'leads' && <LeadsView />}
         {activeTab === 'bookings' && <BookingsView />}
+        {activeTab === 'commercials' && <CommercialsView />}
         {activeTab === 'inventory' && <InventoryView />}
         {activeTab === 'guests' && <GuestsView />}
         {activeTab === 'property-ops' && <PropertyOpsView />}
@@ -58,7 +61,12 @@ const MainLayout: React.FC = () => {
         {activeTab === 'activities' && <ActivitiesView />}
         {(activeTab === 'analytics' || activeTab === 'reports') && <AnalyticsView />}
         {activeTab === 'settings' && <SchemaView />}
-        {activeTab === 'admin' && <AdminView onReturnToDashboard={() => setActiveTab('dashboard')} />}
+        {activeTab === 'admin' && (
+          <AdminView 
+            onReturnToDashboard={() => setActiveTab('dashboard')} 
+            onNavigateTab={(tab) => setActiveTab(tab as any)}
+          />
+        )}
       </main>
 
       {/* Global Toast Notifications (Supabase Cloud Sync & Local Status) */}
@@ -91,7 +99,9 @@ export default function App() {
   return (
     <CRMProvider>
       <AdminAuthProvider>
-        <MainLayout />
+        <CommercialsProvider>
+          <MainLayout />
+        </CommercialsProvider>
       </AdminAuthProvider>
     </CRMProvider>
   );

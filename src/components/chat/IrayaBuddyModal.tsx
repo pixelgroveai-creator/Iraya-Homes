@@ -168,9 +168,9 @@ Ask me any question about the villa or anything under the sun!`,
     const crmSnapshot = getCRMSnapshot();
 
     try {
-      // Create an abort controller with a 10s timeout so the client never hangs
+      // Create an abort controller with a 40s timeout so Gemini has ample time to complete complex responses
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 40000);
 
       const response = await fetch('/api/chat', {
         method: 'POST',

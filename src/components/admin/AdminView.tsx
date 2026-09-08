@@ -37,10 +37,14 @@ import {
   RotateCcw,
   Lock,
   KeyRound,
-  ShieldAlert
+  ShieldAlert,
+  Receipt,
+  Wallet,
+  DollarSign
 } from 'lucide-react';
 import { useCRM } from '../../context/CRMContext';
 import { useAdminAuth } from '../../context/AdminAuthContext';
+import { useCommercials } from '../../context/CommercialsContext';
 import { AdminLockScreen } from './AdminLockScreen';
 import { AdminSecurityPanel } from './AdminSecurityPanel';
 import { 
@@ -60,6 +64,9 @@ type BackendTableKey =
   | 'leads'
   | 'bookings'
   | 'guests'
+  | 'expenses'
+  | 'monthly_balances'
+  | 'expense_categories'
   | 'inventory_items'
   | 'inventory_daily_logs'
   | 'tasks'
@@ -103,6 +110,33 @@ const TABLE_METAS: TableMeta[] = [
     tableName: 'crm_guests',
     description: 'Master guest profiles with phone deduplication, VIP flags, preferences, and lifetime value.',
     icon: UserCheck,
+    primaryKey: 'id',
+    category: 'Commercial'
+  },
+  {
+    key: 'expenses',
+    label: 'Expenses Ledger',
+    tableName: 'expenses',
+    description: 'Daily operational expenditure records with amount, category, payment method, vendor and staff audit.',
+    icon: Receipt,
+    primaryKey: 'id',
+    category: 'Commercial'
+  },
+  {
+    key: 'monthly_balances',
+    label: 'Monthly Balances',
+    tableName: 'monthly_balances',
+    description: 'Monthly capital allocation, closing funds, and automatic rollover carry-forward balances.',
+    icon: Wallet,
+    primaryKey: 'month',
+    category: 'Commercial'
+  },
+  {
+    key: 'expense_categories',
+    label: 'Expense Categories',
+    tableName: 'expense_categories',
+    description: 'Commercial expense taxonomy, color tags, and predefined vs custom classification labels.',
+    icon: DollarSign,
     primaryKey: 'id',
     category: 'Commercial'
   },
@@ -191,9 +225,10 @@ interface ServerStats {
 
 export interface AdminViewProps {
   onReturnToDashboard?: () => void;
+  onNavigateTab?: (tab: string) => void;
 }
 
-export const AdminView: React.FC<AdminViewProps> = ({ onReturnToDashboard }) => {
+export const AdminView: React.FC<AdminViewProps> = ({ onReturnToDashboard, onNavigateTab }) => {
   const {
     isAdminUnlocked,
     lockAdmin,
@@ -220,6 +255,14 @@ export const AdminView: React.FC<AdminViewProps> = ({ onReturnToDashboard }) => 
     pushAllToSupabase,
     resetToDefaultData
   } = useCRM();
+
+  const {
+    expenses,
+    monthlyBalance,
+    categories,
+    selectedMonth,
+    stats: commercialsStats
+  } = useCommercials();
 
   const [activeTableKey, setActiveTableKey] = useState<BackendTableKey>('leads');
   const [activeViewMode, setActiveViewMode] = useState<'table' | 'json' | 'sql' | 'system' | 'security'>('table');
@@ -263,6 +306,18 @@ export const AdminView: React.FC<AdminViewProps> = ({ onReturnToDashboard }) => 
       leads: leads,
       bookings: bookings,
       guests: guests,
+      expenses: expenses,
+      monthly_balances: monthlyBalance ? [{
+        id: monthlyBalance.id,
+        month: monthlyBalance.month,
+        openingBalance: monthlyBalance.openingBalance,
+        totalExpenses: commercialsStats.totalSpent,
+        closingBalance: commercialsStats.closingBalance,
+        autoCarryForward: monthlyBalance.autoCarryForward ?? true,
+        notes: monthlyBalance.notes || 'Normal Operations',
+        updatedAt: monthlyBalance.updatedAt
+      }] : [],
+      expense_categories: categories,
       inventory_items: inventoryItems,
       inventory_daily_logs: inventoryDailyLogs,
       tasks: tasks,
@@ -282,7 +337,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onReturnToDashboard }) => 
       })),
       staff_users: staffList
     };
-  }, [leads, bookings, guests, inventoryItems, inventoryDailyLogs, tasks, issues, activities, checklists, staffList]);
+  }, [leads, bookings, guests, expenses, monthlyBalance, commercialsStats, categories, inventoryItems, inventoryDailyLogs, tasks, issues, activities, checklists, staffList]);
 
   // Current raw data for selected table
   const currentRawData = useMemo(() => {
@@ -295,6 +350,9 @@ export const AdminView: React.FC<AdminViewProps> = ({ onReturnToDashboard }) => 
       leads.length +
       bookings.length +
       guests.length +
+      expenses.length +
+      (monthlyBalance ? 1 : 0) +
+      categories.length +
       inventoryItems.length +
       inventoryDailyLogs.length +
       tasks.length +
@@ -303,7 +361,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onReturnToDashboard }) => 
       checklists.length +
       staffList.length
     );
-  }, [leads, bookings, guests, inventoryItems, inventoryDailyLogs, tasks, issues, activities, checklists, staffList]);
+  }, [leads, bookings, guests, expenses, monthlyBalance, categories, inventoryItems, inventoryDailyLogs, tasks, issues, activities, checklists, staffList]);
 
   // Derive columns from the first few records
   const tableColumns = useMemo(() => {
@@ -549,6 +607,16 @@ export const AdminView: React.FC<AdminViewProps> = ({ onReturnToDashboard }) => 
 
           {/* Quick Action Buttons & Lock Button */}
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            {onNavigateTab && (
+              <button
+                onClick={() => onNavigateTab('commercials')}
+                className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 border border-white/30 text-white px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-xs active:scale-95"
+                title="Navigate directly to the Commercials & Expenses Workspace"
+              >
+                <Receipt className="w-4 h-4 text-emerald-300" />
+                <span>Commercials Workspace</span>
+              </button>
+            )}
             <button
               onClick={lockAdmin}
               className="flex items-center gap-1.5 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-400/40 text-rose-100 hover:text-white px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
@@ -601,7 +669,18 @@ export const AdminView: React.FC<AdminViewProps> = ({ onReturnToDashboard }) => 
           <p className="text-xl font-serif font-bold text-[#2d1217] mt-1">
             {totalRecordCount.toLocaleString()}
           </p>
-          <span className="text-[10px] text-[#968186]">Across 10 primary tables</span>
+          <span className="text-[10px] text-[#968186]">Across {TABLE_METAS.length} primary tables</span>
+        </div>
+
+        <div className="bg-white border border-[#e4d8cf] rounded-xl p-3.5 shadow-2xs">
+          <span className="text-[11px] uppercase tracking-wider text-[#7f6b6f] font-semibold flex items-center gap-1">
+            <Receipt className="w-3.5 h-3.5 text-[#721828]" />
+            Commercials Spend
+          </span>
+          <p className="text-xl font-serif font-bold text-[#721828] mt-1">
+            ₹{commercialsStats.totalSpent.toLocaleString('en-IN')}
+          </p>
+          <span className="text-[10px] text-[#968186]">{expenses.length} logs • ₹{commercialsStats.closingBalance.toLocaleString('en-IN')} closing</span>
         </div>
 
         <div className="bg-white border border-[#e4d8cf] rounded-xl p-3.5 shadow-2xs">
@@ -635,17 +714,6 @@ export const AdminView: React.FC<AdminViewProps> = ({ onReturnToDashboard }) => 
             {(inventoryItems.length + inventoryDailyLogs.length).toLocaleString()}
           </p>
           <span className="text-[10px] text-[#968186]">{inventoryItems.length} items • {inventoryDailyLogs.length} logs</span>
-        </div>
-
-        <div className="bg-white border border-[#e4d8cf] rounded-xl p-3.5 shadow-2xs">
-          <span className="text-[11px] uppercase tracking-wider text-[#7f6b6f] font-semibold flex items-center gap-1">
-            <CheckSquare className="w-3.5 h-3.5 text-indigo-700" />
-            Tasks & Issues
-          </span>
-          <p className="text-xl font-serif font-bold text-[#2d1217] mt-1">
-            {(tasks.length + issues.length).toLocaleString()}
-          </p>
-          <span className="text-[10px] text-[#968186]">{tasks.length} tasks • {issues.length} issues</span>
         </div>
 
         <div className="bg-white border border-[#e4d8cf] rounded-xl p-3.5 shadow-2xs">

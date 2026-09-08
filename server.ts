@@ -34,20 +34,26 @@ function getAIClient(): GoogleGenAI | null {
 
 const GEMINI_CANDIDATE_MODELS = [
   'gemini-3.1-flash-lite',
-  'gemini-flash-latest',
+  'gemini-3.6-flash',
   'gemini-3.8-flash'
 ];
 
 const IRAYA_SYSTEM_INSTRUCTION = `You are "Iraya Buddy", the official, warm, highly courteous, and intelligent AI Personal Assistant for Iraya Homes.
-You assist both villa guests, villa management/operations staff, as well as answering any general or generic queries with elegance and precision.
+You assist both villa guests, villa management/operations staff, as well as answering any general or out-of-the-box queries with outstanding elegance, depth, and precision.
 
-DUAL CAPABILITY (VILLA SPECIALIST + GENERAL KNOWLEDGE ASSISTANT):
-1. **Iraya Homes Luxury Villa Specialist**:
-   - Deep expertise on all accommodations, heated pool, 8-ft pool table lounge, dining, tariffs, house rules, booking policies, Lucknow heritage & culinary trails, and staff SOPs.
-2. **General Knowledge & Open-Domain Assistant**:
-   - You are fully capable and eager to respond to ANY generic or open-domain question asked by the user.
-   - This includes general knowledge, science, geography, weather, travel, history, creative writing, poetry, mathematics, coding, drafting emails/letters, food recipes, humor, and daily conversational queries.
-   - For generic queries, provide clear, intelligent, and accurate responses directly. Maintain a polite, warm tone ("Aadab" / hospitality courtesy), but do NOT force Iraya Homes references into unrelated general questions (e.g., if asked "What is the boiling point of water?" or "Write a poem about the ocean", answer directly and beautifully).
+CORE PRINCIPLE & DUAL INTELLIGENCE:
+1. **Out-of-the-Box & General Knowledge Queries**:
+   - You are a fully capable, world-class general intelligence AI assistant powered by Google Gemini.
+   - When the user asks ANY open-domain question (such as mathematics, science, coding, history, literature, philosophy, grammar, translation, creative writing, recipes, jokes, general knowledge, or daily advice):
+     * Answer the user's question DIRECTLY, DEEPLY, ACCURATELY, and THOROUGHLY.
+     * DO NOT deflect or pivot back to Iraya Homes.
+     * DO NOT mention Iraya Homes, luxury suites, heated pool, tariffs, or Lucknow tourism when the user is asking an unrelated topic (e.g. if asked "What is photosynthesis?", "Who wrote Macbeth?", "Write a binary search in TypeScript", or "Solve 5x + 3 = 28", provide a complete, direct, master-level answer to THAT question).
+     * Format math, code snippets, lists, and multi-step explanations using beautiful, legible Markdown.
+
+2. **Iraya Homes & Hospitality Specialist**:
+   - When the user's question relates to Iraya Homes, accommodations, bookings, check-in, tariffs, house rules, staff operations, or Lucknow sightseeing/food:
+     * Provide rich, detailed, and gracious Awadhi hospitality ("Tehzeeb") responses using the authentic property information detailed below.
+   - Tone: Courteous, articulate, hospitable, and intelligent ("Aadab" hospitality warmth where natural, but crisp and direct for technical/factual queries).
 
 ABOUT IRAYA HOMES:
 - Concept: Exclusive boutique luxury villa in Gomti Nagar, Lucknow, Uttar Pradesh, India. Celebrated for "The Art of Unwinding", refined Nawabi/Awadhi hospitality ("Tehzeeb"), tranquil open gardens, and discreet personalized service.
@@ -314,8 +320,39 @@ function generateKnowledgeFallback(userPrompt: string, crmSnapshot?: any): strin
     return `### ✍️ Draft Guest WhatsApp Welcome Message\n\n---\n*Aadab [Guest Name]! 🌿*\n\n*Warm greetings from Iraya Homes, Lucknow.*\n\n*We look forward to welcoming you and your family to our luxury villa for your stay from [Check-in Date] to [Check-out Date].*\n\n*Key arrival highlights:*\n- 📍 **Address**: Iraya Homes, Gomti Nagar, Lucknow (Google Maps link provided on arrival morning).\n- 🕒 **Check-in**: 2:00 PM (Our host will welcome you at the gate).\n- 🏊 **Villa Spaces**: Heated pool, pool table lounge, and high-speed Wi-Fi are prepped for your unwinding.\n- 👨‍🍳 **Dining**: Let us know your arrival meal or snack preferences so our chef can prepare accordingly.\n\n*For any immediate assistance en route, please call us at +91 98765 43210.*\n\n*Warm regards,*  \n*Kunal Singh & Team Iraya Homes*\n---`;
   }
 
-  // Default smart fallback (gracious Awadhi assistant overview)
-  return `### 🌟 Aadab! I am Iraya Buddy\n\nI am your **AI Personal Assistant** for **Iraya Homes** luxury boutique villa in Gomti Nagar, Lucknow.\n\nI can assist you with:\n- 💎 **Villa Tariffs & Buyouts**: Weekday (₹35k–₹40k), Weekend (₹65k–₹75k), Event packages & ₹15,000 security deposit terms.\n- 🏡 **4 Luxury Suites**: Royal Parkview, Garden Haven, Terrace Suite, and Courtyard Suite (up to 16 guests).\n- 🏊 **Amenities**: Heated indoor pool, 8-ft tournament pool table lounge, modular kitchen, terrace & banquet lawn.\n- 🕒 **Policies**: 2:00 PM check-in, 11:00 AM check-out, Govt IDs, quiet hours (10:30 PM), and pet guidelines.\n- 🍲 **Lucknow Guide**: Tunday Kababi, Dastarkhwan biryani, Royal Cafe chaat, and Bara Imambara.\n- ⚡ **Live Operations**: Current in-house guests, upcoming check-ins, tasks, and maintenance tickets.\n\nHow may I assist you today? Please ask any question!`;
+  // 13. Arithmetic calculation fallback
+  const mathMatch = query.match(/^(\d+)\s*([\+\-\*\/xX])\s*(\d+)$/);
+  if (mathMatch) {
+    const a = parseFloat(mathMatch[1]);
+    const op = mathMatch[2];
+    const b = parseFloat(mathMatch[3]);
+    let result = 0;
+    if (op === '+') result = a + b;
+    else if (op === '-') result = a - b;
+    else if (op === '*' || op.toLowerCase() === 'x') result = a * b;
+    else if (op === '/') result = b !== 0 ? a / b : NaN;
+    return `### 🧮 Calculation Result\n\n**${a} ${op} ${b} = ${isNaN(result) ? 'Undefined (division by zero)' : result}**`;
+  }
+
+  // 14. Check if query is actually about Iraya Homes / Villa
+  const isVillaRelated = 
+    query.includes('iraya') || 
+    query.includes('villa') || 
+    query.includes('hotel') || 
+    query.includes('resort') || 
+    query.includes('stay') || 
+    query.includes('booking') || 
+    query.includes('lucknow') || 
+    query.includes('help') ||
+    query.includes('who are you') ||
+    query.length <= 4;
+
+  if (isVillaRelated) {
+    return `### 🌟 Aadab! I am Iraya Buddy\n\nI am your **AI Personal Assistant** for **Iraya Homes** luxury boutique villa in Gomti Nagar, Lucknow.\n\nI can assist you with:\n- 💎 **Villa Tariffs & Buyouts**: Weekday (₹35k–₹40k), Weekend (₹65k–₹75k), Event packages & ₹15,000 security deposit terms.\n- 🏡 **4 Luxury Suites**: Royal Parkview, Garden Haven, Terrace Suite, and Courtyard Suite (up to 16 guests).\n- 🏊 **Amenities**: Heated indoor pool, 8-ft tournament pool table lounge, modular kitchen, terrace & banquet lawn.\n- 🕒 **Policies**: 2:00 PM check-in, 11:00 AM check-out, Govt IDs, quiet hours (10:30 PM), and pet guidelines.\n- 🍲 **Lucknow Guide**: Tunday Kababi, Dastarkhwan biryani, Royal Cafe chaat, and Bara Imambara.\n- ⚡ **Live Operations**: Current in-house guests, upcoming check-ins, tasks, and maintenance tickets.\n\nHow may I assist you today? Please ask any question!`;
+  }
+
+  // Open-ended fallback message
+  return `### 💡 Notice from Iraya Buddy\n\nI am ready to help you with: *"**${userPrompt}**"*\n\nMy reasoning engine is currently reconnecting. Please press enter or send your message again, and Google Gemini will formulate your answer!`;
 }
 
 // Health check endpoint
@@ -426,12 +463,12 @@ LIVE CRM STATUS & PROPERTY DATA (Use this for questions about current guests, bo
             config: {
               systemInstruction: fullSystemInstruction,
               temperature: 0.7,
-              maxOutputTokens: 1200
+              maxOutputTokens: 2500
             }
           });
 
           const timeoutPromise = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error(`Timeout on ${modelCandidate}`)), 7500)
+            setTimeout(() => reject(new Error(`Timeout on ${modelCandidate}`)), 20000)
           );
 
           const response = await Promise.race([generatePromise, timeoutPromise]);
@@ -473,6 +510,293 @@ LIVE CRM STATUS & PROPERTY DATA (Use this for questions about current guests, bo
       details: err.message
     });
   }
+});
+
+// ============================================================================
+// COMMERCIALS (EXPENSE TRACKING) MODULE API ENDPOINTS
+// ============================================================================
+
+import { 
+  INITIAL_COMMERCIALS_EXPENSES, 
+  INITIAL_CATEGORIES, 
+  INITIAL_MONTHLY_BALANCES, 
+  calculateCommercialsStats 
+} from './src/data/commercialsSeed';
+import { Expense, ExpenseCategory, MonthlyBalance } from './src/types';
+
+let serverExpenses: Expense[] = [...INITIAL_COMMERCIALS_EXPENSES];
+let serverCategories: ExpenseCategory[] = [...INITIAL_CATEGORIES];
+let serverMonthlyBalances: Record<string, MonthlyBalance> = { ...INITIAL_MONTHLY_BALANCES };
+
+// 1. GET /expenses or /api/commercials/expenses (Filterable by month & category)
+const handleGetExpenses = (req: express.Request, res: express.Response) => {
+  const { month, category } = req.query;
+  let results = [...serverExpenses];
+
+  if (month && typeof month === 'string') {
+    results = results.filter(e => e.date.startsWith(month));
+  }
+
+  if (category && typeof category === 'string') {
+    results = results.filter(e => e.category.toLowerCase() === category.toLowerCase());
+  }
+
+  // Sort newest first
+  results.sort((a, b) => b.date.localeCompare(a.date));
+
+  res.json({
+    status: 'ok',
+    count: results.length,
+    month: month || 'all',
+    expenses: results
+  });
+};
+app.get('/expenses', handleGetExpenses);
+app.get('/api/commercials/expenses', handleGetExpenses);
+
+// 2. POST /expenses or /api/commercials/expenses (Create new expense)
+const handlePostExpense = (req: express.Request, res: express.Response) => {
+  const { amount, category, date, description, paymentMethod, payment_method, receiptUrl, receipt_url, notes, userName, user_name } = req.body;
+
+  const numAmount = parseFloat(amount);
+  if (isNaN(numAmount) || numAmount <= 0) {
+    return res.status(400).json({ error: 'Amount is required and must be a positive number.' });
+  }
+
+  if (!category || typeof category !== 'string') {
+    return res.status(400).json({ error: 'Category is required.' });
+  }
+
+  const expenseDate = date || new Date().toISOString().split('T')[0];
+
+  const newExpense: Expense = {
+    id: `exp-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+    amount: numAmount,
+    category: category.trim(),
+    date: expenseDate,
+    description: description?.trim() || '',
+    paymentMethod: (paymentMethod || payment_method || 'Cash') as any,
+    receiptUrl: receiptUrl || receipt_url,
+    notes: notes?.trim(),
+    userName: userName || user_name || 'Staff',
+    createdAt: new Date().toISOString()
+  };
+
+  serverExpenses.unshift(newExpense);
+
+  // Recalculate closing balance for this month if opening balance exists
+  const monthKey = expenseDate.substring(0, 7);
+  if (serverMonthlyBalances[monthKey]) {
+    const monthExpenses = serverExpenses.filter(e => e.date.startsWith(monthKey));
+    const totalSpent = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
+    serverMonthlyBalances[monthKey].totalExpenses = totalSpent;
+    serverMonthlyBalances[monthKey].closingBalance = serverMonthlyBalances[monthKey].openingBalance - totalSpent;
+    serverMonthlyBalances[monthKey].updatedAt = new Date().toISOString();
+  }
+
+  res.status(201).json({
+    status: 'ok',
+    message: 'Expense successfully recorded',
+    expense: newExpense
+  });
+};
+app.post('/expenses', handlePostExpense);
+app.post('/api/commercials/expenses', handlePostExpense);
+
+// 3. PUT /expenses/:id or /api/commercials/expenses/:id (Update expense)
+const handlePutExpense = (req: express.Request, res: express.Response) => {
+  const { id } = req.params;
+  const index = serverExpenses.findIndex(e => e.id === id);
+
+  if (index === -1) {
+    return res.status(404).json({ error: `Expense with ID ${id} not found.` });
+  }
+
+  const existing = serverExpenses[index];
+  const { amount, category, date, description, paymentMethod, receiptUrl, notes, userName } = req.body;
+
+  const updatedExpense: Expense = {
+    ...existing,
+    amount: amount !== undefined ? parseFloat(amount) : existing.amount,
+    category: category !== undefined ? category.trim() : existing.category,
+    date: date || existing.date,
+    description: description !== undefined ? description.trim() : existing.description,
+    paymentMethod: paymentMethod || existing.paymentMethod,
+    receiptUrl: receiptUrl !== undefined ? receiptUrl : existing.receiptUrl,
+    notes: notes !== undefined ? notes.trim() : existing.notes,
+    userName: userName || existing.userName
+  };
+
+  serverExpenses[index] = updatedExpense;
+
+  // Recalculate month balance
+  const monthKey = updatedExpense.date.substring(0, 7);
+  if (serverMonthlyBalances[monthKey]) {
+    const monthExpenses = serverExpenses.filter(e => e.date.startsWith(monthKey));
+    const totalSpent = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
+    serverMonthlyBalances[monthKey].totalExpenses = totalSpent;
+    serverMonthlyBalances[monthKey].closingBalance = serverMonthlyBalances[monthKey].openingBalance - totalSpent;
+    serverMonthlyBalances[monthKey].updatedAt = new Date().toISOString();
+  }
+
+  res.json({
+    status: 'ok',
+    message: 'Expense successfully updated',
+    expense: updatedExpense
+  });
+};
+app.put('/expenses/:id', handlePutExpense);
+app.put('/api/commercials/expenses/:id', handlePutExpense);
+
+// 4. DELETE /expenses/:id or /api/commercials/expenses/:id (Delete expense)
+const handleDeleteExpense = (req: express.Request, res: express.Response) => {
+  const { id } = req.params;
+  const index = serverExpenses.findIndex(e => e.id === id);
+
+  if (index === -1) {
+    return res.status(404).json({ error: `Expense with ID ${id} not found.` });
+  }
+
+  const [removed] = serverExpenses.splice(index, 1);
+
+  // Recalculate month balance
+  const monthKey = removed.date.substring(0, 7);
+  if (serverMonthlyBalances[monthKey]) {
+    const monthExpenses = serverExpenses.filter(e => e.date.startsWith(monthKey));
+    const totalSpent = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
+    serverMonthlyBalances[monthKey].totalExpenses = totalSpent;
+    serverMonthlyBalances[monthKey].closingBalance = serverMonthlyBalances[monthKey].openingBalance - totalSpent;
+    serverMonthlyBalances[monthKey].updatedAt = new Date().toISOString();
+  }
+
+  res.json({
+    status: 'ok',
+    message: 'Expense successfully removed',
+    removedId: id
+  });
+};
+app.delete('/expenses/:id', handleDeleteExpense);
+app.delete('/api/commercials/expenses/:id', handleDeleteExpense);
+
+// 5. GET /dashboard or /api/commercials/dashboard (Aggregated stats for month)
+const handleGetDashboard = (req: express.Request, res: express.Response) => {
+  const month = (req.query.month as string) || '2026-09';
+  const monthBalance = serverMonthlyBalances[month];
+
+  const stats = calculateCommercialsStats(
+    month,
+    serverExpenses,
+    serverMonthlyBalances,
+    serverCategories
+  );
+
+  res.json({
+    status: 'ok',
+    month,
+    stats,
+    monthlyBalance: monthBalance || {
+      id: `bal-${month}`,
+      month,
+      openingBalance: stats.openingBalance,
+      totalExpenses: stats.totalSpent,
+      closingBalance: stats.closingBalance,
+      autoCarryForward: true
+    }
+  });
+};
+app.get('/dashboard', handleGetDashboard);
+app.get('/api/commercials/dashboard', handleGetDashboard);
+
+// 6. PUT /monthly_balances or /api/commercials/monthly_balances
+const handlePutMonthlyBalances = (req: express.Request, res: express.Response) => {
+  const { month, openingBalance, opening_balance, autoCarryForward, auto_carry_forward, notes } = req.body;
+
+  if (!month || typeof month !== 'string') {
+    return res.status(400).json({ error: 'Month (YYYY-MM) is required.' });
+  }
+
+  const opening = parseFloat(openingBalance ?? opening_balance ?? 0);
+  const monthExpenses = serverExpenses.filter(e => e.date.startsWith(month));
+  const totalSpent = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const closing = opening - totalSpent;
+
+  const balanceRecord: MonthlyBalance = {
+    id: `bal-${month}`,
+    month,
+    openingBalance: opening,
+    totalExpenses: totalSpent,
+    closingBalance: closing,
+    autoCarryForward: autoCarryForward ?? auto_carry_forward ?? true,
+    notes: notes?.trim(),
+    updatedAt: new Date().toISOString()
+  };
+
+  serverMonthlyBalances[month] = balanceRecord;
+
+  // If auto carry forward enabled, update next month's opening balance if next month exists
+  if (balanceRecord.autoCarryForward) {
+    const [y, m] = month.split('-').map(Number);
+    const nextDate = new Date(y, m, 1);
+    const nextMonthKey = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}`;
+    if (serverMonthlyBalances[nextMonthKey]) {
+      serverMonthlyBalances[nextMonthKey].openingBalance = closing;
+      serverMonthlyBalances[nextMonthKey].closingBalance = closing - (serverMonthlyBalances[nextMonthKey].totalExpenses || 0);
+      serverMonthlyBalances[nextMonthKey].updatedAt = new Date().toISOString();
+    }
+  }
+
+  res.json({
+    status: 'ok',
+    message: 'Monthly balance updated',
+    balance: balanceRecord
+  });
+};
+app.put('/monthly_balances', handlePutMonthlyBalances);
+app.put('/api/commercials/monthly_balances', handlePutMonthlyBalances);
+
+// 7. Categories management endpoints
+app.get('/api/commercials/categories', (req, res) => {
+  res.json({
+    status: 'ok',
+    categories: serverCategories
+  });
+});
+
+app.post('/api/commercials/categories', (req, res) => {
+  const { name, description, color } = req.body;
+  if (!name || typeof name !== 'string') {
+    return res.status(400).json({ error: 'Category name is required.' });
+  }
+
+  const exists = serverCategories.some(c => c.name.toLowerCase() === name.trim().toLowerCase());
+  if (exists) {
+    return res.status(400).json({ error: 'Category with this name already exists.' });
+  }
+
+  const newCat: ExpenseCategory = {
+    id: `cat-${Date.now()}`,
+    name: name.trim(),
+    description: description?.trim(),
+    color: color || '#059669',
+    isPredefined: false
+  };
+
+  serverCategories.push(newCat);
+  res.status(201).json({ status: 'ok', category: newCat });
+});
+
+app.delete('/api/commercials/categories/:id', (req, res) => {
+  const { id } = req.params;
+  const cat = serverCategories.find(c => c.id === id);
+  if (!cat) {
+    return res.status(404).json({ error: 'Category not found.' });
+  }
+  if (cat.isPredefined) {
+    return res.status(403).json({ error: 'Predefined categories cannot be deleted.' });
+  }
+
+  serverCategories = serverCategories.filter(c => c.id !== id);
+  res.json({ status: 'ok', message: 'Category removed' });
 });
 
 // Vite middleware & Static serving

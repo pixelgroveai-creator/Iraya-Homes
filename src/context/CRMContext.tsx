@@ -64,7 +64,7 @@ import {
 
 interface QuickActionState {
   isOpen: boolean;
-  activeTab: 'lead' | 'booking' | 'activity' | 'task' | 'issue';
+  activeTab: 'lead' | 'booking' | 'activity' | 'task' | 'issue' | 'expense';
   defaultLeadId?: string;
   defaultBookingId?: string;
   defaultGuestId?: string;

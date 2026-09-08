@@ -372,8 +372,36 @@ Would you like another one, a travel trivia fact, or help with something else?`;
 Feel free to ask me any other science, mathematics, or open-domain question!`;
   }
 
-  // Default smart fallback (gracious Awadhi assistant overview)
-  return `### 🌟 Aadab! I am Iraya Buddy
+  // 16. Simple arithmetic / calculations fallback
+  const mathMatch = query.match(/^(\d+)\s*([\+\-\*\/xX])\s*(\d+)$/);
+  if (mathMatch) {
+    const a = parseFloat(mathMatch[1]);
+    const op = mathMatch[2];
+    const b = parseFloat(mathMatch[3]);
+    let result = 0;
+    if (op === '+') result = a + b;
+    else if (op === '-') result = a - b;
+    else if (op === '*' || op.toLowerCase() === 'x') result = a * b;
+    else if (op === '/') result = b !== 0 ? a / b : NaN;
+    return `### 🧮 Calculation Result\n\n**${a} ${op} ${b} = ${isNaN(result) ? 'Undefined (division by zero)' : result}**`;
+  }
+
+  // 17. Check if user is actually asking about Iraya Homes or villa features
+  const isVillaRelated = 
+    query.includes('iraya') || 
+    query.includes('villa') || 
+    query.includes('hotel') || 
+    query.includes('resort') || 
+    query.includes('stay') || 
+    query.includes('booking') || 
+    query.includes('lucknow') || 
+    query.includes('help') ||
+    query.includes('what can you do') ||
+    query.includes('who are you') ||
+    query.length <= 4;
+
+  if (isVillaRelated) {
+    return `### 🌟 Aadab! I am Iraya Buddy
 
 I am your **AI Personal Assistant** for **Iraya Homes** luxury boutique villa in Gomti Nagar, Lucknow.
 
@@ -386,4 +414,14 @@ I can assist you with:
 - ⚡ **Live Operations**: Current in-house guests, upcoming check-ins, tasks, and maintenance tickets.
 
 How may I assist you today? Please feel free to ask any question or tap a suggested topic above!`;
+  }
+
+  // For open-ended or out-of-the-box questions when server is unreachable
+  return `### 💡 Notice from Iraya Buddy
+
+I am currently connecting to the Google Gemini AI engine to process your request:
+
+> *"${userPrompt}"*
+
+Please send your message again or check your network connection so the AI model can formulate a comprehensive, real-time answer for you!`;
 }

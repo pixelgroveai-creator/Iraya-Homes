@@ -13,9 +13,11 @@ import {
   CreditCard, 
   Clock, 
   Check, 
-  DollarSign
+  DollarSign,
+  Receipt
 } from 'lucide-react';
 import { useCRM } from '../../context/CRMContext';
+import { useCommercials } from '../../context/CommercialsContext';
 import { 
   LeadSource, 
   StayPurpose, 
@@ -80,6 +82,7 @@ export const QuickActionModal: React.FC = () => {
           {[
             { id: 'lead', label: '+ Add Lead', icon: Users, color: 'text-[#5a5a40]' },
             { id: 'booking', label: '+ Add Booking', icon: CalendarCheck, color: 'text-[#5a7a40]' },
+            { id: 'expense', label: '+ Record Expense', icon: Receipt, color: 'text-[#721828]' },
             { id: 'activity', label: '+ Log Activity (<60s)', icon: ActivityIcon, color: 'text-[#b0743b]' },
             { id: 'task', label: '+ Create Task', icon: CheckSquare, color: 'text-[#5a5a40]' },
             { id: 'issue', label: '+ Report Issue', icon: AlertTriangle, color: 'text-[#96422b]' },
@@ -107,6 +110,7 @@ export const QuickActionModal: React.FC = () => {
         <div className="p-6 overflow-y-auto space-y-4 text-[#5a5a40] text-xs flex-1">
           {activeTab === 'lead' && <AddLeadForm onClose={closeQuickAction} />}
           {activeTab === 'booking' && <AddBookingForm onClose={closeQuickAction} />}
+          {activeTab === 'expense' && <RecordExpenseForm onClose={closeQuickAction} />}
           {activeTab === 'activity' && <LogActivityForm onClose={closeQuickAction} />}
           {activeTab === 'task' && <CreateTaskForm onClose={closeQuickAction} />}
           {activeTab === 'issue' && <ReportIssueForm onClose={closeQuickAction} />}
@@ -961,6 +965,169 @@ const ReportIssueForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           className="px-5 py-2 rounded-xl bg-[#96422b] hover:bg-[#7a3420] text-white font-bold text-xs transition-all shadow-xs cursor-pointer"
         >
           Report & Escalate Issue
+        </button>
+      </div>
+    </form>
+  );
+};
+
+// 6. RECORD EXPENSE FORM (COMMERCIALS)
+const RecordExpenseForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const { categories, addExpense } = useCommercials();
+  const { currentStaff } = useCRM();
+
+  const [amount, setAmount] = useState('');
+  const [category, setCategory] = useState(categories[0]?.name || 'Food & Beverages');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [description, setDescription] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'Card' | 'UPI' | 'Bank Transfer' | 'Other'>('Cash');
+  const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      setError('Amount must be a positive number.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const success = await addExpense({
+        amount: parsedAmount,
+        category,
+        date,
+        description: description.trim(),
+        paymentMethod,
+        notes: notes.trim() || undefined,
+        userName: currentStaff?.name || 'Staff'
+      });
+
+      if (success) {
+        onClose();
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {error && (
+        <div className="p-3 bg-[#fdf0f2] border border-[#f5ccd2] rounded-xl text-xs text-[#961c2c]">
+          {error}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="block text-[#45373a] mb-1 font-bold text-xs">
+            Amount (INR ₹) <span className="text-[#961c2c]">*</span>
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            min="0.01"
+            required
+            placeholder="e.g. 1250"
+            value={amount}
+            onChange={e => setAmount(e.target.value)}
+            className="w-full bg-[#fdf8f5] border border-[#e4d8cf] focus:border-[#721828] focus:bg-white rounded-xl px-3 py-2 text-[#2d1217] font-bold text-sm outline-none"
+            autoFocus
+          />
+        </div>
+
+        <div>
+          <label className="block text-[#45373a] mb-1 font-bold text-xs">
+            Category <span className="text-[#961c2c]">*</span>
+          </label>
+          <select
+            value={category}
+            onChange={e => setCategory(e.target.value)}
+            className="w-full bg-[#fdf8f5] border border-[#e4d8cf] focus:border-[#721828] focus:bg-white rounded-xl px-3 py-2 text-[#2d1217] text-xs outline-none"
+          >
+            {categories.map(c => (
+              <option key={c.id} value={c.name}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="block text-[#45373a] mb-1 font-bold text-xs">
+            Date <span className="text-[#961c2c]">*</span>
+          </label>
+          <input
+            type="date"
+            required
+            value={date}
+            onChange={e => setDate(e.target.value)}
+            className="w-full bg-[#fdf8f5] border border-[#e4d8cf] focus:border-[#721828] focus:bg-white rounded-xl px-3 py-2 text-[#2d1217] text-xs outline-none"
+          />
+        </div>
+
+        <div>
+          <label className="block text-[#45373a] mb-1 font-bold text-xs">
+            Payment Method <span className="text-[#961c2c]">*</span>
+          </label>
+          <select
+            value={paymentMethod}
+            onChange={e => setPaymentMethod(e.target.value as any)}
+            className="w-full bg-[#fdf8f5] border border-[#e4d8cf] focus:border-[#721828] focus:bg-white rounded-xl px-3 py-2 text-[#2d1217] text-xs outline-none"
+          >
+            <option value="Cash">Cash</option>
+            <option value="Card">Card</option>
+            <option value="UPI">UPI</option>
+            <option value="Bank Transfer">Bank Transfer</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-[#45373a] mb-1 font-bold text-xs">
+          Description / Vendor
+        </label>
+        <input
+          type="text"
+          placeholder="e.g. Milk, bread & organic fruit basket for breakfast"
+          value={description}
+          onChange={e => setDescription(e.target.value)}
+          className="w-full bg-[#fdf8f5] border border-[#e4d8cf] focus:border-[#721828] focus:bg-white rounded-xl px-3 py-2 text-[#2d1217] text-xs outline-none"
+        />
+      </div>
+
+      <div>
+        <label className="block text-[#45373a] mb-1 font-bold text-xs">
+          Notes (Optional)
+        </label>
+        <input
+          type="text"
+          placeholder="e.g. Bill #8821 paid by Front Desk cash float"
+          value={notes}
+          onChange={e => setNotes(e.target.value)}
+          className="w-full bg-[#fdf8f5] border border-[#e4d8cf] focus:border-[#721828] focus:bg-white rounded-xl px-3 py-2 text-[#2d1217] text-xs outline-none"
+        />
+      </div>
+
+      <div className="flex justify-end gap-2 pt-3 border-t border-[#e4d8cf]">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-4 py-2 rounded-xl bg-[#f7efe9] hover:bg-[#ebdcc3] text-[#45373a] font-bold text-xs cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="px-5 py-2 rounded-xl bg-[#721828] hover:bg-[#520b19] disabled:opacity-50 text-white font-bold text-xs transition-all shadow-xs cursor-pointer"
+        >
+          Save Expense
         </button>
       </div>
     </form>

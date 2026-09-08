@@ -138,6 +138,18 @@ export const SchemaView: React.FC = () => {
       desc: 'SQL Analytical view aggregating month opening, total added, total used, and closing remaining stock',
       columns: ['summary_month (YYYY-MM)', 'item_id', 'item_name', 'unit', 'total_opening_stock', 'total_added', 'total_used', 'final_remaining_stock'],
       count: 9
+    },
+    { 
+      name: 'expenses', 
+      desc: 'Daily expenditure entries with amount, category, date, description, payment method, and user audit metadata',
+      columns: ['id (PK)', 'amount (NUMERIC)', 'category', 'date (DATE)', 'description', 'payment_method', 'receipt_url', 'notes', 'user_id', 'user_name', 'created_at'],
+      count: 14
+    },
+    { 
+      name: 'monthly_balances', 
+      desc: 'Month-end closing balance state and auto carry-forward logic (Closing = Opening - Total Spent)',
+      columns: ['id (PK)', 'month (YYYY-MM UNIQUE)', 'opening_balance', 'total_expenses', 'closing_balance', 'auto_carry_forward (BOOL)', 'notes', 'updated_at'],
+      count: 3
     }
   ];
 

@@ -24,7 +24,8 @@ import {
   Package,
   Bot,
   Database,
-  Lock
+  Lock,
+  Receipt
 } from 'lucide-react';
 import { useCRM } from '../../context/CRMContext';
 import { useAdminAuth } from '../../context/AdminAuthContext';
@@ -37,6 +38,7 @@ export type NavTab =
   | 'leads' 
   | 'guests' 
   | 'bookings' 
+  | 'commercials'
   | 'inventory'
   | 'activities' 
   | 'tasks' 
@@ -87,6 +89,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     { id: 'leads', label: 'Leads', icon: Users, badge: kpis.urgentFollowUpsToday > 0 ? kpis.urgentFollowUpsToday : undefined },
     { id: 'guests', label: 'Guests', icon: UserCheck },
     { id: 'bookings', label: 'Bookings', icon: CalendarCheck, badge: kpis.inHouseParties > 0 ? kpis.inHouseParties : undefined },
+    { id: 'commercials', label: 'Commercials', icon: Receipt },
     { id: 'inventory', label: 'Inventory', icon: Package },
     { id: 'activities', label: 'Activities', icon: ActivityIcon },
     { id: 'tasks', label: 'Tasks', icon: CheckSquare, badge: kpis.overdueTasks > 0 ? kpis.overdueTasks : undefined },

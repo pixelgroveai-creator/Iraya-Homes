@@ -27,20 +27,26 @@ function getAIClient(): GoogleGenAI | null {
 
 const GEMINI_CANDIDATE_MODELS = [
   'gemini-3.1-flash-lite',
-  'gemini-flash-latest',
+  'gemini-3.6-flash',
   'gemini-3.8-flash'
 ];
 
 const IRAYA_SYSTEM_INSTRUCTION = `You are "Iraya Buddy", the official, warm, highly courteous, and intelligent AI Personal Assistant for Iraya Homes.
-You assist both villa guests, villa management/operations staff, as well as answering any general or generic queries with elegance and precision.
+You assist both villa guests, villa management/operations staff, as well as answering any general or out-of-the-box queries with outstanding elegance, depth, and precision.
 
-DUAL CAPABILITY (VILLA SPECIALIST + GENERAL KNOWLEDGE ASSISTANT):
-1. **Iraya Homes Luxury Villa Specialist**:
-   - Deep expertise on all accommodations, heated pool, 8-ft pool table lounge, dining, tariffs, house rules, booking policies, Lucknow heritage & culinary trails, and staff SOPs.
-2. **General Knowledge & Open-Domain Assistant**:
-   - You are fully capable and eager to respond to ANY generic or open-domain question asked by the user.
-   - This includes general knowledge, science, geography, weather, travel, history, creative writing, poetry, mathematics, coding, drafting emails/letters, food recipes, humor, and daily conversational queries.
-   - For generic queries, provide clear, intelligent, and accurate responses directly. Maintain a polite, warm tone ("Aadab" / hospitality courtesy), but do NOT force Iraya Homes references into unrelated general questions (e.g., if asked "What is the boiling point of water?" or "Write a poem about the ocean", answer directly and beautifully).
+CORE PRINCIPLE & DUAL INTELLIGENCE:
+1. **Out-of-the-Box & General Knowledge Queries**:
+   - You are a fully capable, world-class general intelligence AI assistant powered by Google Gemini.
+   - When the user asks ANY open-domain question (such as mathematics, science, coding, history, literature, philosophy, grammar, translation, creative writing, recipes, jokes, general knowledge, or daily advice):
+     * Answer the user's question DIRECTLY, DEEPLY, ACCURATELY, and THOROUGHLY.
+     * DO NOT deflect or pivot back to Iraya Homes.
+     * DO NOT mention Iraya Homes, luxury suites, heated pool, tariffs, or Lucknow tourism when the user is asking an unrelated topic (e.g. if asked "What is photosynthesis?", "Who wrote Macbeth?", "Write a binary search in TypeScript", or "Solve 5x + 3 = 28", provide a complete, direct, master-level answer to THAT question).
+     * Format math, code snippets, lists, and multi-step explanations using beautiful, legible Markdown.
+
+2. **Iraya Homes & Hospitality Specialist**:
+   - When the user's question relates to Iraya Homes, accommodations, bookings, check-in, tariffs, house rules, staff operations, or Lucknow sightseeing/food:
+     * Provide rich, detailed, and gracious Awadhi hospitality ("Tehzeeb") responses using the authentic property information detailed below.
+   - Tone: Courteous, articulate, hospitable, and intelligent ("Aadab" hospitality warmth where natural, but crisp and direct for technical/factual queries).
 
 ABOUT IRAYA HOMES:
 - Concept: Exclusive boutique luxury villa in Gomti Nagar, Lucknow, Uttar Pradesh, India. Celebrated for "The Art of Unwinding", refined Nawabi/Awadhi hospitality ("Tehzeeb"), tranquil open gardens, and discreet personalized service.
@@ -303,7 +309,39 @@ function generateKnowledgeFallback(userPrompt: string, crmSnapshot?: any): strin
     return `### ✍️ Draft Guest WhatsApp Welcome Message\n\n---\n*Aadab [Guest Name]! 🌿*\n\n*Warm greetings from Iraya Homes, Lucknow.*\n\n*We look forward to welcoming you and your family to our luxury villa for your stay from [Check-in Date] to [Check-out Date].*\n\n*Key arrival highlights:*\n- 📍 **Address**: Iraya Homes, Gomti Nagar, Lucknow (Google Maps link provided on arrival morning).\n- 🕒 **Check-in**: 2:00 PM (Our host will welcome you at the gate).\n- 🏊 **Villa Spaces**: Heated pool, pool table lounge, and high-speed Wi-Fi are prepped for your unwinding.\n- 👨‍🍳 **Dining**: Let us know your arrival meal or snack preferences so our chef can prepare accordingly.\n\n*For any immediate assistance en route, please call us at +91 98765 43210.*\n\n*Warm regards,*  \n*Kunal Singh & Team Iraya Homes*\n---`;
   }
 
-  return `### 🌟 Aadab! I am Iraya Buddy\n\nI am your **AI Personal Assistant** for **Iraya Homes** luxury boutique villa in Gomti Nagar, Lucknow.\n\nI can assist you with:\n- 💎 **Villa Tariffs & Buyouts**: Weekday (₹35k–₹40k), Weekend (₹65k–₹75k), Event packages & ₹15,000 security deposit terms.\n- 🏡 **4 Luxury Suites**: Royal Parkview, Garden Haven, Terrace Suite, and Courtyard Suite (up to 16 guests).\n- 🏊 **Amenities**: Heated indoor pool, 8-ft tournament pool table lounge, modular kitchen, terrace & banquet lawn.\n- 🕒 **Policies**: 2:00 PM check-in, 11:00 AM check-out, Govt IDs, quiet hours (10:30 PM), and pet guidelines.\n- 🍲 **Lucknow Guide**: Tunday Kababi, Dastarkhwan biryani, Royal Cafe chaat, and Bara Imambara.\n- ⚡ **Live Operations**: Current in-house guests, upcoming check-ins, tasks, and maintenance tickets.\n\nHow may I assist you today? Please ask any question!`;
+  // 13. Arithmetic calculation fallback
+  const mathMatch = query.match(/^(\d+)\s*([\+\-\*\/xX])\s*(\d+)$/);
+  if (mathMatch) {
+    const a = parseFloat(mathMatch[1]);
+    const op = mathMatch[2];
+    const b = parseFloat(mathMatch[3]);
+    let result = 0;
+    if (op === '+') result = a + b;
+    else if (op === '-') result = a - b;
+    else if (op === '*' || op.toLowerCase() === 'x') result = a * b;
+    else if (op === '/') result = b !== 0 ? a / b : NaN;
+    return `### 🧮 Calculation Result\n\n**${a} ${op} ${b} = ${isNaN(result) ? 'Undefined (division by zero)' : result}**`;
+  }
+
+  // 14. Check if query is actually about Iraya Homes / Villa
+  const isVillaRelated = 
+    query.includes('iraya') || 
+    query.includes('villa') || 
+    query.includes('hotel') || 
+    query.includes('resort') || 
+    query.includes('stay') || 
+    query.includes('booking') || 
+    query.includes('lucknow') || 
+    query.includes('help') ||
+    query.includes('who are you') ||
+    query.length <= 4;
+
+  if (isVillaRelated) {
+    return `### 🌟 Aadab! I am Iraya Buddy\n\nI am your **AI Personal Assistant** for **Iraya Homes** luxury boutique villa in Gomti Nagar, Lucknow.\n\nI can assist you with:\n- 💎 **Villa Tariffs & Buyouts**: Weekday (₹35k–₹40k), Weekend (₹65k–₹75k), Event packages & ₹15,000 security deposit terms.\n- 🏡 **4 Luxury Suites**: Royal Parkview, Garden Haven, Terrace Suite, and Courtyard Suite (up to 16 guests).\n- 🏊 **Amenities**: Heated indoor pool, 8-ft tournament pool table lounge, modular kitchen, terrace & banquet lawn.\n- 🕒 **Policies**: 2:00 PM check-in, 11:00 AM check-out, Govt IDs, quiet hours (10:30 PM), and pet guidelines.\n- 🍲 **Lucknow Guide**: Tunday Kababi, Dastarkhwan biryani, Royal Cafe chaat, and Bara Imambara.\n- ⚡ **Live Operations**: Current in-house guests, upcoming check-ins, tasks, and maintenance tickets.\n\nHow may I assist you today? Please ask any question!`;
+  }
+
+  // Open-ended fallback notice
+  return `### 💡 Notice from Iraya Buddy\n\nI am ready to help you with: *"**${userPrompt}**"*\n\nMy reasoning engine is currently reconnecting. Please press enter or send your message again, and Google Gemini will formulate your answer!`;
 }
 
 // Router for API endpoints
@@ -388,12 +426,12 @@ LIVE CRM STATUS & PROPERTY DATA (Use this for questions about current guests, bo
             config: {
               systemInstruction: fullSystemInstruction,
               temperature: 0.7,
-              maxOutputTokens: 1200,
+              maxOutputTokens: 2500,
             },
           });
 
           const timeoutPromise = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error(`Timeout on ${modelCandidate}`)), 7500)
+            setTimeout(() => reject(new Error(`Timeout on ${modelCandidate}`)), 20000)
           );
 
           const response = await Promise.race([generatePromise, timeoutPromise]);

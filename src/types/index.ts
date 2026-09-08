@@ -283,7 +283,98 @@ export interface ToastNotification {
   type: 'success' | 'info' | 'warning' | 'error';
   title: string;
   message: string;
-  source?: 'supabase' | 'local' | 'inventory' | 'booking' | 'lead';
+  source?: 'supabase' | 'local' | 'inventory' | 'booking' | 'lead' | 'commercials';
   timestamp: number;
+}
+
+// ============================================================================
+// COMMERCIALS & EXPENSE TRACKING MODULE (PIXELGROVE SPECIFICATION)
+// ============================================================================
+
+export type PredefinedExpenseCategory =
+  | 'Marketing & Ads'
+  | 'Software & Tools'
+  | 'Office Supplies'
+  | 'Travel & Transport'
+  | 'Food & Beverages'
+  | 'Utilities (Electricity, Internet, etc.)'
+  | 'Salaries & Wages'
+  | 'Miscellaneous';
+
+export type PaymentMethod = 
+  | 'Cash' 
+  | 'Card' 
+  | 'UPI' 
+  | 'Bank Transfer' 
+  | 'Other';
+
+export interface Expense {
+  id: string; // UUID primary key
+  userId?: string; // references auth.users / staff
+  userName?: string;
+  amount: number; // positive number > 0
+  category: string; // Predefined or custom category
+  date: string; // YYYY-MM-DD (cannot be in future)
+  description?: string;
+  paymentMethod: PaymentMethod;
+  receiptUrl?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface MonthlyBalance {
+  id: string; // UUID primary key
+  userId?: string;
+  month: string; // YYYY-MM (or YYYY-MM-01)
+  openingBalance: number;
+  totalExpenses?: number;
+  closingBalance: number; // computed: openingBalance - totalSpent
+  autoCarryForward?: boolean;
+  notes?: string;
+  createdAt?: string;
+  updatedAt: string;
+}
+
+export interface ExpenseCategoryItem {
+  id: string;
+  name: string;
+  isPredefined: boolean;
+  color?: string;
+  icon?: string;
+  description?: string;
+  createdAt?: string;
+}
+
+export type ExpenseCategory = ExpenseCategoryItem;
+
+export interface CategorySpendSummary {
+  category: string;
+  totalAmount: number;
+  percentage: number;
+  count: number;
+  color: string;
+}
+
+export interface DailySpendTrend {
+  date: string;
+  day: number;
+  amount: number;
+  count: number;
+  isOutlier?: boolean;
+}
+
+export interface CommercialsDashboardStats {
+  month: string; // YYYY-MM
+  totalSpent: number;
+  openingBalance: number;
+  closingBalance: number;
+  avgDailySpend: number;
+  expenseCount: number;
+  isDeficit: boolean;
+  categoryBreakdown: CategorySpendSummary[];
+  dailySpendTrends: DailySpendTrend[];
+  topExpenses: Expense[];
+  paymentMethodBreakdown: { method: PaymentMethod; amount: number; percentage: number; count: number }[];
 }
 
