@@ -31,6 +31,7 @@ import { useCRM } from '../../context/CRMContext';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import { UserRole } from '../../types';
 import { IrayaLogo } from '../common/IrayaLogo';
+import { IrayaBuddyAvatar } from '../chat/IrayaBuddyAvatar';
 import { GlobalSearch } from './GlobalSearch';
 
 export type NavTab = 
@@ -203,10 +204,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             <button
               id="navbar-btn-iraya-buddy"
               onClick={toggleIrayaBuddy}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#fbf2f4] hover:bg-[#f2dde1] border border-[#e2b3bc] text-[#721828] font-serif font-bold text-xs transition-all shadow-2xs active:scale-95 cursor-pointer"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#fbf2f4] hover:bg-[#f2dde1] border border-[#e2b3bc] text-[#721828] font-serif font-bold text-xs transition-all shadow-2xs active:scale-95 cursor-pointer"
               title="Open Iraya Buddy — AI Personal Assistant"
             >
-              <Bot className="w-3.5 h-3.5 text-[#721828]" />
+              <IrayaBuddyAvatar size="xs" showOnlineIndicator={true} />
               <span className="hidden md:inline">Iraya Buddy</span>
               <Sparkles className="w-3 h-3 text-[#c29342] animate-pulse" />
             </button>

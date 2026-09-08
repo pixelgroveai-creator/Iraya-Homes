@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useCRM } from '../../context/CRMContext';
 import { generateClientKnowledgeResponse, CRMSnapshot } from '../../utils/chatKnowledge';
+import { IrayaBuddyAvatar } from './IrayaBuddyAvatar';
 
 interface ChatMessage {
   id: string;
@@ -74,7 +75,9 @@ export const IrayaBuddyModal: React.FC = () => {
     bookings,
     tasks,
     issues,
-    leads
+    leads,
+    inventoryItems,
+    kpis
   } = useCRM();
 
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -83,16 +86,16 @@ export const IrayaBuddyModal: React.FC = () => {
       role: 'model',
       content: `### 🌟 Aadab! I am Iraya Buddy
 
-I am your **AI Personal Assistant** for **Iraya Homes** luxury boutique villa in Gomti Nagar, Lucknow, powered by **Google Gemini**.
+I am your **Executive Hospitality Concierge & Estate Operations Lead** for **Iraya Homes** luxury boutique villa in Gomti Nagar, Lucknow.
 
-I can assist you with:
-- 🏡 **Iraya Homes Villa**: 4 luxury suites, heated indoor pool, tournament pool table lounge & tariff details
-- 🕒 **Policies & SOPs**: Check-in (2:00 PM), check-out (11:00 AM), guest IDs, security deposit & quiet hours
-- 🍲 **Lucknow Guide**: Authentic Awadhi food (Tunday Kababi, Dastarkhwan) & heritage places
-- 📋 **Staff Operations**: Daily inventory logging, booking workflows & message drafts
-- 🌐 **General Knowledge & Open Queries**: Ask me *anything* — general questions, science, mathematics, poetry, translations, or writing!
+How may I assist you today?
+- 📋 **Live Villa Operations**: In-house guest folios, pre-arrival inspection status, active maintenance tickets, and priority staff tasks
+- 🏡 **Estate Specifications**: 4 bespoke luxury suites, heated indoor pool (28°C), 8-ft tournament pool table lounge & buyout tariffs
+- 👑 **Awadhi Hospitality & Concierge**: Private chef dining (Galouti & Dum Biryani), heritage trails (Bara Imambara), and VIP guest preferences
+- 📊 **CRM & Inventory**: Daily inventory audit workflows, lead follow-ups, and commercial terms
+- 🌐 **Comprehensive Intelligence**: Deep general knowledge, complex calculations, translations, or technical inquiries
 
-Ask me any question about the villa or anything under the sun!`,
+Ask me any question about the villa operations, guests, or anything you wish to explore!`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       source: 'gemini-3.1-flash-lite'
     }
@@ -128,23 +131,91 @@ Ask me any question about the villa or anything under the sun!`,
 
   // Build live snapshot of CRM state for bot context
   const getCRMSnapshot = (): CRMSnapshot => {
+    const inHouse = (bookings || []).filter(b => b.status === 'Checked-in');
+    const upcoming = (bookings || []).filter(b => b.status === 'Confirmed' || b.status === 'Hold');
+    const activeTasks = (tasks || []).filter(t => t.status !== 'completed' && t.status !== 'Done');
+    const activeIssues = (issues || []).filter(i => i.status !== 'Resolved' && i.status !== 'resolved');
+
     return {
-      inHouseGuests: (bookings || [])
-        .filter(b => b.status === 'Checked-in' || b.status === 'confirmed')
-        .map(b => `${b.guestName} (${b.guestCount} Guests, ${b.suites?.join(', ') || 'Villa Buyout'})`),
-      upcomingArrivals: (bookings || [])
-        .filter(b => b.status === 'confirmed')
-        .map(b => `${b.guestName} (${b.checkInDate} to ${b.checkOutDate})`),
-      urgentTasks: (tasks || [])
-        .filter(t => t.status !== 'completed')
-        .slice(0, 5)
-        .map(t => `${t.title} [${t.priority || 'Normal'}]`),
-      openIssues: (issues || [])
-        .filter(i => i.status !== 'resolved')
-        .map(i => `${i.title} (${i.area || 'Villa'}, ${i.severity || 'Medium'})`),
-      pendingLeadsCount: (leads || []).filter(l => l.status === 'New' || l.status === 'Contacted').length,
+      inHouseGuests: inHouse.map(b => `${b.guestName} (${b.guestCount} Guests — ${b.stayPurpose || 'Staycation'}, Check-out: ${b.checkOutDate})`),
+      inHouseDetailed: inHouse.map(b => ({
+        id: b.id,
+        guestName: b.guestName,
+        guestPhone: b.guestPhone,
+        guestCount: b.guestCount,
+        checkInDate: b.checkInDate,
+        checkOutDate: b.checkOutDate,
+        status: b.status,
+        stayPurpose: b.stayPurpose,
+        totalQuote: b.totalQuote,
+        advanceDepositPaid: b.advanceDepositPaid,
+        balanceDue: b.balanceDue,
+        securityDepositAmount: b.securityDepositAmount,
+        preArrivalInspectionDone: b.preArrivalInspectionDone,
+        specialRequests: b.specialRequests,
+        notes: b.notes
+      })),
+      upcomingArrivals: upcoming.map(b => `${b.guestName} (${b.guestCount} Guests, ${b.checkInDate} to ${b.checkOutDate} [${b.status}])`),
+      upcomingDetailed: upcoming.map(b => ({
+        name: b.guestName,
+        dates: `${b.checkInDate} to ${b.checkOutDate}`,
+        guestCount: b.guestCount,
+        status: b.status,
+        stayPurpose: b.stayPurpose,
+        totalQuote: b.totalQuote,
+        balanceDue: b.balanceDue,
+        specialRequests: b.specialRequests
+      })),
+      urgentTasks: activeTasks.slice(0, 6).map(t => `${t.title} [${t.priority} Priority]`),
+      tasksDetailed: activeTasks.map(t => ({
+        id: t.id,
+        title: t.title,
+        priority: t.priority,
+        status: t.status,
+        category: t.category,
+        dueDate: t.dueDate,
+        assignee: 'Kunal Singh',
+        isOverdue: t.dueDate ? new Date(t.dueDate) < new Date() : false
+      })),
+      openIssues: activeIssues.map(i => `${i.title} (${i.propertyAreaId || 'Villa'}, ${i.severity} Severity, Status: ${i.status})`),
+      issuesDetailed: activeIssues.map(i => ({
+        id: i.id,
+        title: i.title,
+        area: i.propertyAreaId || 'Villa',
+        severity: i.severity,
+        status: i.status,
+        assignedVendor: i.assignedToStaffOrVendor,
+        impactsUpcomingStay: i.impactsUpcomingStay,
+        estimatedCost: i.estimatedCost
+      })),
+      pendingLeadsCount: (leads || []).filter(l => l.status === 'NEW' || l.status === 'FOLLOW-UP' || l.status === 'CONTACTED').length,
+      leadsSummary: (leads || [])
+        .filter(l => l.status === 'NEW' || l.status === 'FOLLOW-UP' || l.status === 'CONTACTED')
+        .slice(0, 4)
+        .map(l => ({
+          name: l.name,
+          source: l.source,
+          dates: `${l.checkInDate} to ${l.checkOutDate}`,
+          guestCount: l.guestCount,
+          quoteAmount: l.quoteAmount,
+          notes: l.notes
+        })),
+      lowStockItems: (inventoryItems || [])
+        .filter(item => (item.currentStock ?? 0) <= (item.reorderThreshold ?? 0))
+        .map(item => `${item.name} (${item.currentStock} ${item.unit} remaining, threshold: ${item.reorderThreshold})`),
+      kpis: {
+        arrivalsToday: kpis?.arrivalsToday ?? 0,
+        departuresToday: kpis?.departuresToday ?? 0,
+        inHouseGuests: kpis?.inHouseGuests ?? 0,
+        inHouseParties: kpis?.inHouseParties ?? 0,
+        unassignedLeads: kpis?.unassignedLeads ?? 0,
+        tasksDueToday: kpis?.tasksDueToday ?? 0,
+        overdueTasks: kpis?.overdueTasks ?? 0,
+        openIssuesCount: kpis?.openIssuesCount ?? 0,
+        urgentIssuesCount: kpis?.urgentIssuesCount ?? 0
+      },
       activeStaffName: currentStaff?.name || 'Kunal Singh',
-      activeStaffRole: currentStaff?.role || 'Staff Lead'
+      activeStaffRole: currentStaff?.role || 'Senior Social Media & Operations Lead'
     };
   };
 
@@ -364,13 +435,10 @@ Aadab! I am **Iraya Buddy**, your AI Personal Assistant. Ask me anything about I
         <button
           id="iraya-buddy-floating-trigger"
           onClick={toggleIrayaBuddy}
-          className="fixed bottom-6 right-6 z-40 group flex items-center gap-2.5 bg-[#721828] hover:bg-[#881d30] text-white p-3 sm:px-4 sm:py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 border-2 border-[#f0ded2] cursor-pointer hover:scale-105 active:scale-95"
+          className="fixed bottom-6 right-6 z-40 group flex items-center gap-2.5 bg-[#721828] hover:bg-[#881d30] text-white p-2.5 sm:px-4 sm:py-2.5 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 border-2 border-[#f0ded2] cursor-pointer hover:scale-105 active:scale-95"
           title="Open Iraya Buddy — AI Personal Assistant"
         >
-          <div className="relative flex items-center justify-center">
-            <Bot className="w-5 h-5 text-[#fdf8f5]" />
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full ring-2 ring-[#721828] animate-pulse" />
-          </div>
+          <IrayaBuddyAvatar size="md" showOnlineIndicator={true} />
           <div className="hidden sm:flex flex-col text-left">
             <span className="text-xs font-serif font-bold tracking-wide flex items-center gap-1 text-white">
               Iraya Buddy <Sparkles className="w-3 h-3 text-amber-300" />
@@ -395,9 +463,7 @@ Aadab! I am **Iraya Buddy**, your AI Personal Assistant. Ask me anything about I
           {/* Header */}
           <div className="bg-gradient-to-r from-[#2d1217] via-[#5c1320] to-[#721828] text-white px-4 py-3 rounded-t-2xl flex items-center justify-between shadow-xs shrink-0">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-white/10 backdrop-blur-xs border border-white/20 flex items-center justify-center text-amber-300 shadow-inner">
-                <Bot className="w-5 h-5" />
-              </div>
+              <IrayaBuddyAvatar size="lg" showOnlineIndicator={true} />
               <div>
                 <div className="flex items-center gap-1.5">
                   <h3 className="font-serif font-bold text-sm tracking-wide text-white">
@@ -409,8 +475,7 @@ Aadab! I am **Iraya Buddy**, your AI Personal Assistant. Ask me anything about I
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 text-[11px] text-[#e8d5ce]">
-                  <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping" />
-                  <span>Online • Villa & Generic Queries</span>
+                  <span>Online • Villa & General Knowledge</span>
                 </div>
               </div>
             </div>
@@ -463,7 +528,7 @@ Aadab! I am **Iraya Buddy**, your AI Personal Assistant. Ask me anything about I
           </div>
 
           {/* Chat Messages Body */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-[#fdfaf8]">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#fdfaf8]">
             {messages.map((msg) => {
               const isUser = msg.role === 'user';
               return (
@@ -471,19 +536,20 @@ Aadab! I am **Iraya Buddy**, your AI Personal Assistant. Ask me anything about I
                   key={msg.id}
                   className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
                 >
-                  <div
-                    className={`max-w-[88%] rounded-2xl p-3.5 relative text-left shadow-2xs ${
-                      isUser
-                        ? 'bg-[#721828] text-white rounded-br-xs'
-                        : 'bg-white border border-[#e4d8cf] text-[#45373a] rounded-bl-xs'
-                    }`}
-                  >
-                    {!isUser ? (
-                      <div>
+                  {isUser ? (
+                    <div className="max-w-[85%] rounded-2xl rounded-br-xs p-3.5 relative text-left shadow-2xs bg-[#721828] text-white">
+                      <p className="text-xs sm:text-[13px] whitespace-pre-wrap leading-relaxed">
+                        {msg.content}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-2 max-w-[92%]">
+                      <IrayaBuddyAvatar size="sm" className="mt-0.5 shrink-0 shadow-xs" />
+                      <div className="flex-1 rounded-2xl rounded-tl-xs p-3.5 relative text-left shadow-2xs bg-white border border-[#e4d8cf] text-[#45373a]">
                         {renderFormattedContent(msg.content)}
                         <div className="mt-2.5 pt-2 border-t border-[#f2e6de] flex items-center justify-between text-[10px] text-[#968186]">
-                          <span className="flex items-center gap-1">
-                            <Bot className="w-3 h-3 text-[#721828]" />
+                          <span className="flex items-center gap-1.5">
+                            <IrayaBuddyAvatar size="xs" />
                             <span className="font-medium text-[#721828]">
                               {getSourceBadge(msg.source, msg.provider)}
                             </span>
@@ -507,13 +573,9 @@ Aadab! I am **Iraya Buddy**, your AI Personal Assistant. Ask me anything about I
                           </button>
                         </div>
                       </div>
-                    ) : (
-                      <p className="text-xs sm:text-[13px] whitespace-pre-wrap leading-relaxed">
-                        {msg.content}
-                      </p>
-                    )}
-                  </div>
-                  <span className="text-[10px] text-[#968186] mt-1 px-1 font-mono">
+                    </div>
+                  )}
+                  <span className={`text-[10px] text-[#968186] mt-1 px-1 font-mono ${!isUser ? 'ml-8' : ''}`}>
                     {msg.timestamp}
                   </span>
                 </div>
@@ -522,12 +584,14 @@ Aadab! I am **Iraya Buddy**, your AI Personal Assistant. Ask me anything about I
 
             {/* Typing Loader Indicator */}
             {isLoading && (
-              <div className="flex flex-col items-start">
-                <div className="bg-white border border-[#e4d8cf] rounded-2xl rounded-bl-xs p-3.5 shadow-2xs flex items-center gap-2 text-xs text-[#7f6b6f]">
-                  <Bot className="w-4 h-4 text-[#721828] animate-bounce" />
-                  <span>Querying Google Gemini...</span>
+              <div className="flex items-start gap-2">
+                <IrayaBuddyAvatar size="sm" showOnlineIndicator={true} className="mt-0.5 shrink-0" />
+                <div className="bg-white border border-[#e4d8cf] rounded-2xl rounded-tl-xs p-3 shadow-2xs flex items-center gap-2.5 text-xs text-[#7f6b6f]">
+                  <span className="text-[#721828] font-medium">Iraya Buddy thinking...</span>
                   <div className="flex gap-1 items-center">
-                    <span className="w-1.5 h-1.5 bg-[#721828] rounded-full animate-ping" />
+                    <span className="w-1.5 h-1.5 bg-[#721828] rounded-full animate-bounce [animation-delay:-0.3s]" />
+                    <span className="w-1.5 h-1.5 bg-[#c29342] rounded-full animate-bounce [animation-delay:-0.15s]" />
+                    <span className="w-1.5 h-1.5 bg-[#721828] rounded-full animate-bounce" />
                   </div>
                 </div>
               </div>

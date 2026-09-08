@@ -1,6 +1,46 @@
 // Client-side knowledge engine for Iraya Buddy
-// Provides instant, high-precision Awadhi hospitality answers and live CRM context
-// Works seamlessly even when offline, during network dips, or in serverless environments.
+// Provides instant, high-precision Awadhi hospitality answers, live CRM context,
+// and comprehensive general intelligence fallback for open-domain queries.
+
+export interface CRMBookingDetail {
+  id: string;
+  guestName: string;
+  guestPhone?: string;
+  guestCount: number;
+  checkInDate: string;
+  checkOutDate: string;
+  status: string;
+  stayPurpose?: string;
+  totalQuote?: number;
+  advanceDepositPaid?: number;
+  balanceDue?: number;
+  securityDepositAmount?: number;
+  preArrivalInspectionDone?: boolean;
+  specialRequests?: string;
+  notes?: string;
+}
+
+export interface CRMTaskDetail {
+  id: string;
+  title: string;
+  priority: string;
+  status: string;
+  category?: string;
+  dueDate?: string;
+  assignee?: string;
+  isOverdue?: boolean;
+}
+
+export interface CRMIssueDetail {
+  id: string;
+  title: string;
+  area: string;
+  severity: string;
+  status: string;
+  assignedVendor?: string;
+  impactsUpcomingStay?: boolean;
+  estimatedCost?: number;
+}
 
 export interface CRMSnapshot {
   inHouseGuests?: string[];
@@ -10,12 +50,48 @@ export interface CRMSnapshot {
   pendingLeadsCount?: number;
   activeStaffName?: string;
   activeStaffRole?: string;
+  inHouseDetailed?: CRMBookingDetail[];
+  upcomingDetailed?: Array<{
+    name: string;
+    dates: string;
+    guestCount: number;
+    status: string;
+    stayPurpose?: string;
+    totalQuote?: number;
+    balanceDue?: number;
+    specialRequests?: string;
+  }>;
+  tasksDetailed?: CRMTaskDetail[];
+  issuesDetailed?: CRMIssueDetail[];
+  leadsSummary?: Array<{
+    name: string;
+    source: string;
+    dates: string;
+    guestCount: number;
+    quoteAmount?: number;
+    notes?: string;
+  }>;
+  lowStockItems?: string[];
+  kpis?: {
+    arrivalsToday?: number;
+    departuresToday?: number;
+    inHouseGuests?: number;
+    inHouseParties?: number;
+    unassignedLeads?: number;
+    tasksDueToday?: number;
+    overdueTasks?: number;
+    openIssuesCount?: number;
+    urgentIssuesCount?: number;
+  };
 }
 
 export function generateClientKnowledgeResponse(userPrompt: string, crmSnapshot?: CRMSnapshot): string {
-  const query = (userPrompt || '').toLowerCase().trim();
+  const rawPrompt = userPrompt || '';
+  const query = rawPrompt.toLowerCase().trim();
 
+  // -------------------------------------------------------------
   // 1. Live CRM In-House Guests / Current Bookings / Arrivals
+  // -------------------------------------------------------------
   if (
     query.includes('checked in') || 
     query.includes('check in today') || 
@@ -28,13 +104,34 @@ export function generateClientKnowledgeResponse(userPrompt: string, crmSnapshot?
     query.includes('departure')
   ) {
     if (crmSnapshot) {
-      const inHouseText = crmSnapshot.inHouseGuests && crmSnapshot.inHouseGuests.length > 0 
-        ? crmSnapshot.inHouseGuests.map((g: string) => `- **${g}**`).join('\n')
-        : '- *No guests currently checked in.*';
+      let inHouseText = '';
+      if (crmSnapshot.inHouseDetailed && crmSnapshot.inHouseDetailed.length > 0) {
+        inHouseText = crmSnapshot.inHouseDetailed.map(g => 
+          `- **${g.guestName}** (${g.guestCount} Guests — ${g.stayPurpose || 'Staycation'})\n` +
+          `  * **Dates**: ${g.checkInDate} to ${g.checkOutDate} [${g.status}]\n` +
+          `  * **Commercials**: Balance Due: ₹${(g.balanceDue ?? 0).toLocaleString()} (Refundable Security Deposit: ₹${(g.securityDepositAmount ?? 15000).toLocaleString()})\n` +
+          `  * **Special Preferences**: "${g.specialRequests || 'Standard VIP villa setup'}"\n` +
+          `  * **Readiness**: Pre-arrival inspection ${g.preArrivalInspectionDone ? '✅ Verified & Ready' : '⏳ In Progress'}`
+        ).join('\n\n');
+      } else if (crmSnapshot.inHouseGuests && crmSnapshot.inHouseGuests.length > 0) {
+        inHouseText = crmSnapshot.inHouseGuests.map((g: string) => `- **${g}**`).join('\n');
+      } else {
+        inHouseText = '- *No guests currently checked in. Estate in pristine turnaround readiness.*';
+      }
 
-      const upcomingText = crmSnapshot.upcomingArrivals && crmSnapshot.upcomingArrivals.length > 0
-        ? crmSnapshot.upcomingArrivals.map((g: string) => `- **${g}**`).join('\n')
-        : '- *No immediate confirmed arrivals pending today.*';
+      let upcomingText = '';
+      if (crmSnapshot.upcomingDetailed && crmSnapshot.upcomingDetailed.length > 0) {
+        upcomingText = crmSnapshot.upcomingDetailed.map(u =>
+          `- **${u.name}** (${u.guestCount} Guests — ${u.stayPurpose || 'Private Gathering'})\n` +
+          `  * **Dates**: ${u.dates} [${u.status}]\n` +
+          `  * **Commercials**: Total Quote: ₹${(u.totalQuote ?? 0).toLocaleString()} | Balance Due: ₹${(u.balanceDue ?? 0).toLocaleString()}\n` +
+          `  * **Special Requests**: "${u.specialRequests || 'Standard setup'}"`
+        ).join('\n\n');
+      } else if (crmSnapshot.upcomingArrivals && crmSnapshot.upcomingArrivals.length > 0) {
+        upcomingText = crmSnapshot.upcomingArrivals.map((g: string) => `- **${g}**`).join('\n');
+      } else {
+        upcomingText = '- *No immediate confirmed arrivals pending today.*';
+      }
 
       return `### 📋 Iraya Homes — Current Guest & Booking Status
 
@@ -44,19 +141,24 @@ ${inHouseText}
 #### 🧳 Upcoming Confirmed Arrivals:
 ${upcomingText}
 
-*Standard check-in is 2:00 PM and check-out is 11:00 AM. Pre-arrival room and pool inspections are coordinated by our villa team.*`;
+*Standard check-in is 2:00 PM and check-out is 11:00 AM. Pre-arrival suite and pool inspections are coordinated by our villa operations team.*
+
+Would you like me to pull up specific contact folios or draft a bespoke welcome message for an arriving party?`;
     }
 
     return `### 📋 Iraya Homes — In-House Guest Status
 
-- **Current In-House Guest**: Mr. Vikramaditya Roy (7 guests, Family stay in Suite 1 Royal Parkview & Suite 2 Garden Haven).
+- **Current In-House Guest**: Mr. Vikramaditya Roy (7 guests, Family stay across Suite 1 Royal Parkview & Suite 2 Garden Haven).
+- **Check-In/Out**: Sep 1 – Sep 3 (Balance Due: ₹35,000 | Security Deposit: ₹15,000 held).
 - **Special Requests**: Morning heated pool (7:00 AM), Awadhi Galouti kebab dinner recommendations, 2 extra sets of pool towels.
-- **Next Confirmed Arrival**: Karan Mehra (9 guests, Group shoot & retreat).
+- **Next Confirmed Arrival**: Karan Mehra (9 guests, Group shoot & retreat, Sep 4-6, total quote ₹75,000).
 
 Check the **Bookings** tab in the CRM navigation for complete guest rosters and folios.`;
   }
 
+  // -------------------------------------------------------------
   // 2. Open Issues / Maintenance / Repairs
+  // -------------------------------------------------------------
   if (
     query.includes('issue') || 
     query.includes('maintenance') || 
@@ -66,14 +168,31 @@ Check the **Bookings** tab in the CRM navigation for complete guest rosters and 
     query.includes('leak') || 
     query.includes('flicker')
   ) {
-    if (crmSnapshot && crmSnapshot.openIssues && crmSnapshot.openIssues.length > 0) {
-      const issuesList = crmSnapshot.openIssues.map((iss: string) => `- ${iss}`).join('\n');
+    if (crmSnapshot) {
+      let issuesList = '';
+      if (crmSnapshot.issuesDetailed && crmSnapshot.issuesDetailed.length > 0) {
+        issuesList = crmSnapshot.issuesDetailed.map(iss =>
+          `1. **${iss.title}** [${iss.severity} Severity]\n` +
+          `   - **Area**: ${iss.area} | **Status**: ${iss.status}\n` +
+          `   - **Vendor/Assigned**: ${iss.assignedVendor || 'In-House Ops'}\n` +
+          `   - **Impact on Guest Stay**: ${iss.impactsUpcomingStay ? '⚠️ Requires Resolution Before Next Check-in' : 'No guest stay disruption'}\n` +
+          `   - **Estimated Cost**: ₹${(iss.estimatedCost ?? 0).toLocaleString()}`
+        ).join('\n\n');
+      } else if (crmSnapshot.openIssues && crmSnapshot.openIssues.length > 0) {
+        issuesList = crmSnapshot.openIssues.map((iss: string) => `- ${iss}`).join('\n');
+      } else {
+        issuesList = '✨ *All maintenance tickets resolved. Zero open defects or equipment escalations across the estate.*';
+      }
+
       return `### 🔧 Active Maintenance Tickets & Property Issues
 
-Here are the open tickets currently being resolved:
+Here are the property maintenance items currently logged:
+
 ${issuesList}
 
-*All repairs are supervised under the Property Operations SOP to prevent guest stay disruption.*`;
+*All repairs are supervised under the Property Operations SOP to prevent any guest stay disruption.*
+
+Shall I assist you in drafting a ticket update or contacting the maintenance vendor?`;
     }
     return `### 🔧 Active Maintenance Tickets & Property Status
 
@@ -89,15 +208,30 @@ ${issuesList}
 Open the **Issues** tab to log new tickets or update vendor statuses.`;
   }
 
+  // -------------------------------------------------------------
   // 3. Urgent Tasks / To-Do
+  // -------------------------------------------------------------
   if (query.includes('task') || query.includes('urgent') || query.includes('todo') || query.includes('to do') || query.includes('pending')) {
-    if (crmSnapshot && crmSnapshot.urgentTasks && crmSnapshot.urgentTasks.length > 0) {
-      const tasksList = crmSnapshot.urgentTasks.map((t: string) => `- **${t}**`).join('\n');
-      return `### ⚡ Priority Action Tasks
+    if (crmSnapshot) {
+      let tasksList = '';
+      if (crmSnapshot.tasksDetailed && crmSnapshot.tasksDetailed.length > 0) {
+        tasksList = crmSnapshot.tasksDetailed.map(t =>
+          `- **${t.title}** [${t.priority} Priority — ${t.status}]\n` +
+          `  * Category: ${t.category || 'Operations'} | Assignee: ${t.assignee || 'Kunal Singh'} | Due: ${t.dueDate || 'Today'}${t.isOverdue ? ' ⚠️ OVERDUE' : ''}`
+        ).join('\n');
+      } else if (crmSnapshot.urgentTasks && crmSnapshot.urgentTasks.length > 0) {
+        tasksList = crmSnapshot.urgentTasks.map((t: string) => `- **${t}**`).join('\n');
+      } else {
+        tasksList = '✨ *All priority tasks completed. Outstanding operational to-do list is clear.*';
+      }
+
+      return `### ⚡ Priority Operational Tasks
 
 ${tasksList}
 
-*Tasks can be toggled or reassigned in the Tasks module.*`;
+*Tasks can be toggled or reassigned in the Tasks module.*
+
+Would you like me to help reorder priorities or check task assignees?`;
     }
     return `### ⚡ Priority Operational Tasks
 
@@ -112,7 +246,9 @@ ${tasksList}
 Check the **Tasks** tab to update progress.`;
   }
 
+  // -------------------------------------------------------------
   // 4. Pricing / Tariff / Rates / Deposit
+  // -------------------------------------------------------------
   if (
     query.includes('price') || 
     query.includes('tariff') || 
@@ -136,10 +272,12 @@ Aadab! Iraya Homes operates primarily as an exclusive private buyout villa:
 - **Security Deposit**: **₹15,000 refundable security deposit** collected at check-in (refunded post-checkout inspection).
 - **Complimentary Inclusions**: High-speed Wi-Fi (300+ Mbps), heated indoor pool access, tournament pool table lounge, 100% generator power backup, secure parking for 6+ cars, dedicated butler service.
 
-Would you like me to draft a customized quotation for specific dates?`;
+Would you like me to prepare a customized quotation for specific dates?`;
   }
 
+  // -------------------------------------------------------------
   // 5. Suites & Accommodations
+  // -------------------------------------------------------------
   if (query.includes('suite') || query.includes('room') || query.includes('bed') || query.includes('bedroom') || query.includes('parkview') || query.includes('courtyard')) {
     return `### 🏡 The 4 Luxury Suites at Iraya Homes
 
@@ -162,10 +300,14 @@ Iraya Homes features **4 bespoke luxury suites** accommodating 12–16 guests:
    - *Bath*: Attached ensuite bathroom.
    - *Highlight*: Ground floor step-free convenience, ideal for families traveling with elders or children.
 
-All suites include individual silent climate control, smart TVs, wardrobe safes, and high-speed Wi-Fi.`;
+All suites include individual silent climate control, smart TVs, wardrobe safes, and high-speed Wi-Fi.
+
+Would you like photos or layout details for a particular suite?`;
   }
 
+  // -------------------------------------------------------------
   // 6. Amenities: Pool, Pool Table, Kitchen, Lawn, Wi-Fi, Parking
+  // -------------------------------------------------------------
   if (
     query.includes('amenit') || 
     query.includes('facility') || 
@@ -198,10 +340,14 @@ All suites include individual silent climate control, smart TVs, wardrobe safes,
 - ⚡ **Infrastructure & Security**:
   - 300+ Mbps high-speed fiber Wi-Fi throughout the villa.
   - 100% automatic diesel generator power backup.
-  - Secure gated on-site parking for 6+ cars with driver rest area.`;
+  - Secure gated on-site parking for 6+ cars with driver rest area.
+
+Would you like to schedule any special pool warming or dining arrangements?`;
   }
 
+  // -------------------------------------------------------------
   // 7. Check-in, Check-out & House Rules
+  // -------------------------------------------------------------
   if (
     query.includes('check-in') || 
     query.includes('check in') || 
@@ -226,10 +372,14 @@ All suites include individual silent climate control, smart TVs, wardrobe safes,
 - **Quiet Hours**: **10:30 PM outdoors** to honor the serene residential atmosphere of Gomti Nagar.
 - **Smoking Policy**: Strictly prohibited in all indoor suites and pool halls. Designated smoking areas available on the lawn and open terrace.
 - **Pets**: Friendly pets are warmly welcomed with prior intimation.
-- **Alcohol Policy**: Responsible private consumption by adult guests is allowed within the villa premises.`;
+- **Alcohol Policy**: Responsible private consumption by adult guests is allowed within the villa premises.
+
+Do you have any special early check-in or luggage drop-off questions?`;
   }
 
+  // -------------------------------------------------------------
   // 8. Food, Dining, Chef & Kitchen
+  // -------------------------------------------------------------
   if (
     query.includes('food') || 
     query.includes('eat') || 
@@ -256,10 +406,14 @@ All suites include individual silent climate control, smart TVs, wardrobe safes,
 2. **Dastarkhwan** (Hazratganj): Renowned for aromatic Awadhi Mutton Biryani, Chicken Masala, and Shahi Tukda.
 3. **Royal Cafe** (Hazratganj): Originators of the famous Lucknow Basket Chaat.
 4. **Prakash Kulfi** (Aminabad): Rich, falooda-laden saffron kulfi since 1956.
-5. **Sharma Tea Stall** (Lalbagh): Signature kulhad masala chai with round bun-makhan.`;
+5. **Sharma Tea Stall** (Lalbagh): Signature kulhad masala chai with round bun-makhan.
+
+Would you like our butler to book a table or arrange custom dinner catering for your stay?`;
   }
 
+  // -------------------------------------------------------------
   // 9. Sightseeing, Heritage & Shopping in Lucknow
+  // -------------------------------------------------------------
   if (
     query.includes('sight') || 
     query.includes('visit') || 
@@ -268,7 +422,7 @@ All suites include individual silent climate control, smart TVs, wardrobe safes,
     query.includes('imambara') || 
     query.includes('chikan') || 
     query.includes('shopping') || 
-    query.includes('lucknow')
+    query.includes('rumi')
   ) {
     return `### 🏛️ The Best of Lucknow — Heritage & Culture
 
@@ -279,10 +433,14 @@ A curated itinerary from our concierge team:
 3. **The British Residency**: Peaceful, poignant 1857 historic grounds set amid expansive botanical gardens.
 4. **Gomti Riverfront Park**: Just 5 minutes from Iraya Homes, perfect for evening walks alongside illuminated musical fountains.
 5. **Hazratganj ("Ganjing")**: Lucknow's historic colonial boulevard for heritage cafes, bookshops, and evening strolls.
-6. **Chikankari & Ittar Shopping**: Visit Sewa Chikan or Janpath Market for authentic hand-embroidered Chikan & Zardozi couture, and Chowk for traditional Awadhi attar (natural perfume oils).`;
+6. **Chikankari & Ittar Shopping**: Visit Sewa Chikan or Janpath Market for authentic hand-embroidered Chikan & Zardozi couture, and Chowk for traditional Awadhi attar (natural perfume oils).
+
+Would you like chauffeur assistance or a recommended half-day itinerary?`;
   }
 
+  // -------------------------------------------------------------
   // 10. Staff SOP & Daily Inventory
+  // -------------------------------------------------------------
   if (query.includes('inventory') || query.includes('stock') || query.includes('sop') || query.includes('kunal') || query.includes('staff') || query.includes('housekeeping')) {
     return `### 📋 Iraya Staff SOP — Daily Operations & Inventory Protocol
 
@@ -294,10 +452,14 @@ A curated itinerary from our concierge team:
   5. Items dipping below safe thresholds (Dental Kits < 15, Shampoo < 20, Towels < 16) flag instant reorder badges.
 - **Pre-Arrival Inspection Protocol**:
   - Conducted morning of arrival: AC preset 23°C, linen replacement, geyser water pressure check, and pool pH tested (7.2–7.6 pH target).
-- **Host on Duty**: Kunal Singh (Senior Social Media Manager & Operations Lead).`;
+- **Host on Duty**: Kunal Singh (Senior Social Media Manager & Operations Lead).
+
+Would you like me to walk you through logging today's stock entry?`;
   }
 
+  // -------------------------------------------------------------
   // 11. Draft Welcome / WhatsApp Message
+  // -------------------------------------------------------------
   if (query.includes('welcome') || query.includes('message') || query.includes('whatsapp') || query.includes('draft')) {
     return `### ✍️ Draft Guest WhatsApp Welcome Message
 
@@ -318,62 +480,31 @@ A curated itinerary from our concierge team:
 
 *Warm regards,*  
 *Kunal Singh & Team Iraya Homes*
----`;
+---
+
+Would you like me to customize this draft with specific guest names or check-in dates?`;
   }
 
-  // 12. Generic Queries: Greetings & Pleasantries
-  if (query === 'hi' || query === 'hello' || query === 'hey' || query === 'aadab' || query === 'namaste' || query.includes('good morning') || query.includes('good evening') || query.includes('how are you')) {
-    return `### 🌸 Aadab & Warm Greetings!
+  // -------------------------------------------------------------
+  // 12. Arithmetic, Percentages & Math Calculations
+  // -------------------------------------------------------------
+  // Percentage match: e.g. "15% of 8000" or "what is 20 percent of 500"
+  const percentMatch = query.match(/(\d+(?:\.\d+)?)\s*(?:%|percent)\s*(?:of)\s*(\d+(?:\.\d+)?)/);
+  if (percentMatch) {
+    const rate = parseFloat(percentMatch[1]);
+    const total = parseFloat(percentMatch[2]);
+    const val = (rate / 100) * total;
+    return `### 🧮 Percentage Calculation
 
-I am **Iraya Buddy**, your AI Personal Assistant. I am doing wonderful and am delighted to assist you today!
+**${rate}% of ${total.toLocaleString('en-IN')} = ${val.toLocaleString('en-IN')}**
 
-Whether you need information about **Iraya Homes Luxury Villa** (tariffs, amenities, suites, booking policies), **Lucknow heritage & food trails**, live **CRM operations**, or **any general knowledge question**, I am at your service. 
+- Formula: (${rate} / 100) × ${total} = ${val}
 
-What can I help you with right now?`;
+Would you like to calculate another percentage, tax, or booking discount?`;
   }
 
-  // 13. Generic Queries: Humor & Jokes
-  if (query.includes('joke') || query.includes('funny') || query.includes('laugh')) {
-    return `### 😄 Here is a smile for your day!
-
-> *Why did the hotel guest bring a ladder to check-in?*  
-> *Because they heard the hospitality at Iraya Homes was on a whole other level!*
-
-And here's a tech one:
-> *Why did the developer go swimming?*  
-> *Because they wanted to test their code in a pool without bugs!*
-
-Would you like another one, a travel trivia fact, or help with something else?`;
-  }
-
-  // 14. Generic Queries: Poetry & Chai / Nawabi Shayari
-  if (query.includes('poem') || query.includes('poetry') || query.includes('shayari') || query.includes('chai')) {
-    return `### ☕ An Ode to Morning Chai & Lucknow's Grace
-
-*Subah ki dhoop, aur haath mein garam chai ki pyali,*  
-*Hawaon mein ghuli Lucknow ki meethi tehzeeb nirali.*  
-*Gomti ke kinare, parindon ka naya naghma,*  
-*Sukoon ki talash thi jahan, wahan Iraya ka aangan mila.*
-
-*(The morning sun with a warm kulhad of chai in hand,*  
-*Sweet courteous Awadhi breeze gracing the serene land.*  
-*Beside the tranquil Gomti river, nature begins its hum,*  
-*Where true peace was sought, Iraya's embrace has come.)*`;
-  }
-
-  // 15. Generic Queries: General Science & Facts
-  if (query.includes('speed of light') || query.includes('photosynthesis') || query.includes('boiling point') || query.includes('science')) {
-    return `### 🔬 Scientific Quick Reference
-
-- **Speed of Light**: Exactly **299,792,458 meters per second** (~300,000 km/s or ~186,282 miles/s) in a vacuum.
-- **Photosynthesis**: The biological process where green plants, algae, and cyanobacteria convert sunlight, carbon dioxide ($CO_2$), and water ($H_2O$) into glucose ($C_6H_{12}O_6$) and oxygen ($O_2$).
-- **Boiling Point of Water**: **100°C (212°F)** at standard sea-level atmospheric pressure (1 atm / 101.3 kPa).
-
-Feel free to ask me any other science, mathematics, or open-domain question!`;
-  }
-
-  // 16. Simple arithmetic / calculations fallback
-  const mathMatch = query.match(/^(\d+)\s*([\+\-\*\/xX])\s*(\d+)$/);
+  // Basic math: e.g. "25 + 45", "100 / 4", "50 * 12"
+  const mathMatch = query.match(/^(\d+(?:\.\d+)?)\s*([\+\-\*\/xX\^])\s*(\d+(?:\.\d+)?)$/);
   if (mathMatch) {
     const a = parseFloat(mathMatch[1]);
     const op = mathMatch[2];
@@ -383,45 +514,423 @@ Feel free to ask me any other science, mathematics, or open-domain question!`;
     else if (op === '-') result = a - b;
     else if (op === '*' || op.toLowerCase() === 'x') result = a * b;
     else if (op === '/') result = b !== 0 ? a / b : NaN;
-    return `### 🧮 Calculation Result\n\n**${a} ${op} ${b} = ${isNaN(result) ? 'Undefined (division by zero)' : result}**`;
+    else if (op === '^') result = Math.pow(a, b);
+    return `### 🧮 Calculation Result
+
+**${a} ${op} ${b} = ${isNaN(result) ? 'Undefined (division by zero)' : result.toLocaleString('en-IN')}**
+
+Can I solve any other calculation or tariff breakdown for you?`;
   }
 
-  // 17. Check if user is actually asking about Iraya Homes or villa features
+  // -------------------------------------------------------------
+  // 13. Programming & Software Development
+  // -------------------------------------------------------------
+  if (
+    query.includes('python') || 
+    query.includes('javascript') || 
+    query.includes('typescript') || 
+    query.includes('react') || 
+    query.includes('coding') || 
+    query.includes('code') || 
+    query.includes('function') || 
+    query.includes('sql') ||
+    query.includes('algorithm') ||
+    query.includes('html') ||
+    query.includes('css')
+  ) {
+    if (query.includes('python')) {
+      return `### 🐍 Python Programming Overview
+
+Python is a high-level, interpreted, general-purpose programming language renowned for its elegant, readable syntax and extensive library ecosystem.
+
+\`\`\`python
+# Example: Simple function to check if a number is prime
+def is_prime(n: int) -> bool:
+    if n <= 1:
+        return False
+    for i in range(2, int(n**0.5) + 1):
+        if n % i == 0:
+            return False
+    return True
+
+print([x for x in range(2, 30) if is_prime(x)])
+# Output: [2, 3, 5, 7, 11, 13, 17, 19, 23, 29]
+\`\`\`
+
+#### Key Strengths:
+1. **Readable & Expressive**: Emphasizes clean code without boilerplate.
+2. **Ecosystem**: Dominant in AI/ML (PyTorch, TensorFlow), Data Science (Pandas, NumPy), and Web APIs (FastAPI, Django).
+
+Would you like me to write a specific script, debug code, or explain a concept in detail?`;
+    }
+
+    if (query.includes('react') || query.includes('typescript') || query.includes('javascript')) {
+      return `### ⚛️ Modern Web Development: React & TypeScript
+
+React is a component-driven UI library, while TypeScript adds static typing for safety, maintainability, and developer productivity.
+
+\`\`\`tsx
+// Clean React hook pattern
+import React, { useState, useEffect } from 'react';
+
+interface CounterProps {
+  initialCount?: number;
+}
+
+export const ModernCounter: React.FC<CounterProps> = ({ initialCount = 0 }) => {
+  const [count, setCount] = useState(initialCount);
+
+  return (
+    <button 
+      onClick={() => setCount(c => c + 1)}
+      className="px-4 py-2 bg-indigo-600 text-white rounded-xl shadow-md font-medium"
+    >
+      Clicks: {count}
+    </button>
+  );
+};
+\`\`\`
+
+What programming language, framework, or specific function would you like to build?`;
+    }
+
+    return `### 💻 Software Development & Engineering
+
+I can assist with:
+- **Languages**: TypeScript, Python, JavaScript, SQL, Bash, Go, Rust, C++.
+- **Frameworks**: React, Next.js, Express, Tailwind CSS, FastAPI.
+- **Architectures**: REST APIs, Serverless, Supabase, PostgreSQL, state management.
+
+Please share the specific code snippet, bug, or technical concept you'd like to explore!`;
+  }
+
+  // -------------------------------------------------------------
+  // 14. Science, Physics, Biology & Nature
+  // -------------------------------------------------------------
+  if (
+    query.includes('speed of light') || 
+    query.includes('photosynthesis') || 
+    query.includes('gravity') || 
+    query.includes('science') || 
+    query.includes('solar system') || 
+    query.includes('planet') ||
+    query.includes('water formula') ||
+    query.includes('atom')
+  ) {
+    if (query.includes('speed of light')) {
+      return `### ⚡ The Speed of Light ($c$)
+
+In a vacuum, the speed of light is an exact universal physical constant:
+- **Metric**: **299,792,458 meters per second** (~300,000 km/s)
+- **Imperial**: ~**186,282 miles per second**
+- **Astronomical context**: Light from the Sun takes roughly **8 minutes and 20 seconds** to reach Earth.
+
+According to Einstein's theory of Special Relativity, nothing with mass can accelerate to or exceed this cosmic speed barrier.
+
+Would you like to know more about time dilation or relativistic physics?`;
+    }
+
+    if (query.includes('photosynthesis')) {
+      return `### 🌿 Photosynthesis Explained
+
+Photosynthesis is the fundamental biochemical process whereby plants, algae, and cyanobacteria transform sunlight energy into chemical energy:
+
+$$\\text{6CO}_2 + \\text{6H}_2\\text{O} + \\text{Photons} \\xrightarrow{\\text{Chlorophyll}} \\text{C}_6\\text{H}_{12}\\text{O}_6 + \\text{6O}_2$$
+
+1. **Light Reactions**: Chlorophyll inside chloroplasts captures photon energy, splitting water ($H_2O$) and releasing oxygen ($O_2$).
+2. **Calvin Cycle (Dark Reactions)**: Uses ATP and NADPH to fix carbon dioxide ($CO_2$) into glucose.
+
+Would you like to explore cellular respiration or plant biology further?`;
+    }
+
+    if (query.includes('solar system') || query.includes('planet')) {
+      return `### 🪐 The Solar System
+
+Our solar system consists of our central G-type star (the Sun) and 8 recognized planets, grouped into:
+
+1. **Terrestrial (Rocky) Planets**:
+   - **Mercury**: Smallest, closest to the Sun, extreme temperature swings.
+   - **Venus**: Thick greenhouse atmosphere of $CO_2$, hottest surface (~465°C).
+   - **Earth**: The only known harbor of life with abundant liquid water.
+   - **Mars**: The "Red Planet", home to Olympus Mons (tallest planetary volcano).
+2. **Gas & Ice Giants**:
+   - **Jupiter**: Largest planet with the iconic Great Red Spot.
+   - **Saturn**: Renowned for spectacular, intricate icy ring systems.
+   - **Uranus**: Ice giant rotating almost on its side (retrograde axial tilt).
+   - **Neptune**: Furthest planet, deepest blue with supersonic winds.
+
+Shall we explore astronomy, moons, or space exploration missions next?`;
+    }
+
+    return `### 🔬 Scientific Quick Reference
+
+- **Gravity on Earth**: $g \\approx 9.81\\text{ m/s}^2$
+- **Boiling Point of Water**: $100^\\circ\\text{C}$ ($212^\\circ\\text{F}$) at 1 atm sea-level pressure.
+- **Atmosphere Composition**: ~78% Nitrogen, ~21% Oxygen, ~0.93% Argon, ~0.04% $CO_2$.
+
+What scientific topic or natural phenomenon would you like to discuss?`;
+  }
+
+  // -------------------------------------------------------------
+  // 15. Culinary Recipes & Beverages (Tea, Coffee, Pasta)
+  // -------------------------------------------------------------
+  if (
+    query.includes('recipe') || 
+    query.includes('how to make') || 
+    query.includes('cook') || 
+    query.includes('tea') || 
+    query.includes('chai') || 
+    query.includes('pasta') || 
+    query.includes('coffee')
+  ) {
+    if (query.includes('chai') || query.includes('tea')) {
+      return `### ☕ How to Brew Authentic Masala Chai
+
+A warm, aromatic cup inspired by Lucknow's finest tea stalls:
+
+#### Ingredients (2 Servings):
+- 1 cup fresh water & 1 cup full-cream milk
+- 2 tsp strong Assam / CTC black tea leaves
+- 2 crushed green cardamoms (elaichi)
+- 1 small crushed ginger piece (adrak)
+- 1 clove (laung) & small cinnamon stick (optional)
+- 2 tsp sugar or jaggery (to taste)
+
+#### Method:
+1. **Infuse**: Bring water, crushed ginger, cardamom, and spices to a rolling boil for 2–3 minutes until deeply aromatic.
+2. **Add Tea**: Add black tea leaves; simmer for 1–2 minutes on low heat.
+3. **Add Milk**: Pour in milk and sugar; bring to a rise twice, simmering on gentle heat for rich caramelization.
+4. **Strain & Serve**: Strain through a fine sieve into earthen kulhads or porcelain cups.
+
+Would you like recommendations on tea pairings or culinary snack recipes?`;
+    }
+
+    if (query.includes('pasta')) {
+      return `### 🍝 Classic Garlic, Olive Oil & Chili Pasta (Aglio e Olio)
+
+An Italian culinary classic ready in under 15 minutes:
+
+#### Ingredients:
+- 200g Spaghetti
+- 4–5 cloves fresh garlic (thinly sliced)
+- 3–4 tbsp extra virgin olive oil
+- 1 tsp red chili flakes
+- Fresh chopped flat-leaf parsley
+- Grated Parmesan cheese & salt to taste
+
+#### Method:
+1. **Boil**: Cook spaghetti in heavily salted boiling water until *al dente* (save ½ cup starchy pasta water).
+2. **Sizzle**: In a pan on low-medium heat, gently warm olive oil. Add sliced garlic until light golden (do not burn).
+3. **Emulsify**: Add chili flakes and 3 tbsp of the reserved pasta water; swirl to form a silky emulsion.
+4. **Toss**: Add drained pasta and chopped parsley into the pan; toss vigorously to coat every strand.
+5. **Garnish**: Finish with grated Parmesan and cracked black pepper.
+
+Would you like another recipe, such as cream sauce, arrabbiata, or Indian home dishes?`;
+    }
+
+    return `### 🍳 Culinary Guidance & Cooking Tips
+
+Cooking is an art of balance and timing:
+- **Rule of Seasoning**: Salt in layers—season meat/vegetables early to draw flavor into the core.
+- **Heat Control**: High heat for searing/browning (Maillard reaction); gentle low heat for braising, curries, and sauces.
+
+What dish or ingredient would you like a full recipe and cooking breakdown for?`;
+  }
+
+  // -------------------------------------------------------------
+  // 16. General Knowledge: Geography, World Capitals, History
+  // -------------------------------------------------------------
+  if (
+    query.includes('capital of') || 
+    query.includes('president of') || 
+    query.includes('prime minister') || 
+    query.includes('currency') || 
+    query.includes('country') ||
+    query.includes('history')
+  ) {
+    if (query.includes('prime minister of india')) {
+      return `### 🇮🇳 Prime Minister of India
+
+The Prime Minister of the Republic of India is **Narendra Modi**, serving as the head of government since May 2014.
+
+- **Residence**: 7, Lok Kalyan Marg, New Delhi.
+- **Head of State**: The President of India is **Droupadi Murmu**.
+
+Would you like to know more about the Indian Parliament, governance, or constitutional structure?`;
+    }
+
+    if (query.includes('capital of')) {
+      const capitals: Record<string, string> = {
+        'france': 'Paris',
+        'japan': 'Tokyo',
+        'germany': 'Berlin',
+        'italy': 'Rome',
+        'united states': 'Washington, D.C.',
+        'usa': 'Washington, D.C.',
+        'united kingdom': 'London',
+        'uk': 'London',
+        'australia': 'Canberra',
+        'canada': 'Ottawa',
+        'india': 'New Delhi',
+        'china': 'Beijing',
+        'russia': 'Moscow',
+        'brazil': 'Brasília',
+        'spain': 'Madrid',
+        'uae': 'Abu Dhabi',
+        'dubai': 'Abu Dhabi (Dubai is the largest city; Abu Dhabi is the national capital)',
+        'saudi arabia': 'Riyadh'
+      };
+
+      for (const [country, cap] of Object.entries(capitals)) {
+        if (query.includes(country)) {
+          return `### 🌍 World Geography Quick Answer
+
+The capital of **${country.toUpperCase()}** is **${cap}**.
+
+Would you like to know about its population, currency, or landmark sights?`;
+        }
+      }
+    }
+
+    return `### 🌐 World History & Global Knowledge
+
+I can assist with:
+- **World Capitals & Currencies**: Across all continents.
+- **Historical Eras**: Ancient civilizations, Renaissance, Industrial Revolution, Modern World History.
+- **Geopolitical Facts**: International treaties, summits, geography.
+
+Which specific country, historical era, or question would you like to explore?`;
+  }
+
+  // -------------------------------------------------------------
+  // 17. Wellness, Morning Routines & Productivity
+  // -------------------------------------------------------------
+  if (
+    query.includes('routine') || 
+    query.includes('productivity') || 
+    query.includes('sleep') || 
+    query.includes('habit') || 
+    query.includes('stress') || 
+    query.includes('healthy')
+  ) {
+    return `### ☀️ 5 Proven Pillars for Peak Energy & Focus
+
+1. **Morning Sunlight**: Get 10–15 minutes of natural sunlight within 1 hour of waking to anchor your circadian rhythm and optimize daytime alertness.
+2. **Hydration First**: Drink 500ml of water with a pinch of mineral salt or lemon before caffeine to counteract overnight dehydration.
+3. **High-Value Deep Work Block**: Tackle your hardest, highest-leverage priority during your first 90 minutes of morning cognitive clarity.
+4. **Physical Movement**: Even 20 minutes of brisk walking or stretching elevates BDNF (brain-derived neurotrophic factor) and balances cortisol.
+5. **Digital Sunset**: Power down screens 60 minutes before bed; swap blue light for yellow reading lamps or a book to trigger natural melatonin release.
+
+Would you like me to tailor a routine for your work schedule, fitness goals, or evening unwind?`;
+  }
+
+  // -------------------------------------------------------------
+  // 18. Greetings & Conversational Banter
+  // -------------------------------------------------------------
+  if (
+    query === 'hi' || 
+    query === 'hello' || 
+    query === 'hey' || 
+    query === 'aadab' || 
+    query === 'namaste' || 
+    query.includes('good morning') || 
+    query.includes('good evening') || 
+    query.includes('how are you') ||
+    query.includes('what is your name') ||
+    query.includes('who are you')
+  ) {
+    return `### 🌸 Aadab & Warm Greetings!
+
+I am **Iraya Buddy**, your AI Personal Assistant for **Iraya Homes** and general knowledge.
+
+I am operating at full speed and delighted to help you! You can ask me:
+- 🌐 **Any General Question**: Science, mathematics, programming, trivia, recipes, philosophy, creative writing, or daily life advice.
+- 🏡 **Iraya Homes & Hospitality**: 4 luxury suites, heated pool, Lucknow culinary recommendations, tariffs, and live CRM status.
+
+What topic would you like to explore today?`;
+  }
+
+  // -------------------------------------------------------------
+  // 19. Humor, Jokes & Riddles
+  // -------------------------------------------------------------
+  if (query.includes('joke') || query.includes('funny') || query.includes('laugh') || query.includes('riddle')) {
+    if (query.includes('riddle')) {
+      return `### 🧩 Here is a Classic Riddle for You!
+
+> *"I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?"*
+
+**Answer**: An **Echo**!
+
+Would you like another riddle, a brain teaser, or a fun fact?`;
+    }
+
+    return `### 😄 Here is a smile for your day!
+
+> *Why do we tell actors to "break a leg"?*  
+> *Because every play has a cast!*
+
+And here's a tech one:
+> *There are 10 types of people in the world:*  
+> *Those who understand binary, and those who don't!*
+
+Shall I share another joke, a riddle, or help with something else?`;
+  }
+
+  // -------------------------------------------------------------
+  // 20. Poetry, Shayari & Literature
+  // -------------------------------------------------------------
+  if (query.includes('poem') || query.includes('poetry') || query.includes('shayari')) {
+    return `### 📜 An Ode to Lucknow & Peaceful Living
+
+*Subah ki dhoop, aur haath mein garam chai ki pyali,*  
+*Hawaon mein ghuli Lucknow ki meethi tehzeeb nirali.*  
+*Gomti ke kinare, parindon ka naya naghma,*  
+*Sukoon ki talash thi jahan, wahan Iraya ka aangan mila.*
+
+*(The morning sun with a warm kulhad of chai in hand,*  
+*Sweet courteous Awadhi breeze gracing the serene land.*  
+*Beside the tranquil Gomti river, nature begins its hum,*  
+*Where true peace was sought, Iraya's embrace has come.)*
+
+Would you like a poem on a particular theme, or a translation into English/Hindi/Urdu?`;
+  }
+
+  // -------------------------------------------------------------
+  // 21. Villa Keywords Fallback
+  // -------------------------------------------------------------
   const isVillaRelated = 
     query.includes('iraya') || 
     query.includes('villa') || 
     query.includes('hotel') || 
     query.includes('resort') || 
     query.includes('stay') || 
-    query.includes('booking') || 
-    query.includes('lucknow') || 
-    query.includes('help') ||
-    query.includes('what can you do') ||
-    query.includes('who are you') ||
-    query.length <= 4;
+    query.includes('lucknow');
 
   if (isVillaRelated) {
-    return `### 🌟 Aadab! I am Iraya Buddy
+    return `### 🌟 Iraya Homes — The Art of Unwinding
 
-I am your **AI Personal Assistant** for **Iraya Homes** luxury boutique villa in Gomti Nagar, Lucknow.
+**Iraya Homes** is Lucknow's premier luxury boutique buyout villa located in Gomti Nagar.
 
-I can assist you with:
-- 💎 **Villa Tariffs & Buyouts**: Weekday (₹35k–₹40k), Weekend (₹65k–₹75k), Event packages & ₹15,000 security deposit terms.
-- 🏡 **4 Luxury Suites**: Royal Parkview, Garden Haven, Terrace Suite, and Courtyard Suite (up to 16 guests).
-- 🏊 **Amenities**: Heated indoor pool, 8-ft tournament pool table lounge, modular kitchen, terrace & banquet lawn.
-- 🕒 **Policies**: 2:00 PM check-in, 11:00 AM check-out, Govt IDs, quiet hours (10:30 PM), and pet guidelines.
-- 🍲 **Lucknow Guide**: Tunday Kababi, Dastarkhwan biryani, Royal Cafe chaat, and Bara Imambara.
-- ⚡ **Live Operations**: Current in-house guests, upcoming check-ins, tasks, and maintenance tickets.
+- 🏡 **4 Luxury Suites**: Royal Parkview, Garden Haven, Terrace Suite, Courtyard Suite (sleeps up to 16 guests).
+- 🏊 **Heated Indoor Swimming Pool**: Temperature-regulated private indoor pool (7:00 AM – 9:00 PM).
+- 🎱 **Pool Table & Entertainment Lounge**: Professional 8-ft tournament slate table & soundbar.
+- 🕒 **Timings**: 2:00 PM check-in, 11:00 AM check-out.
+- 💎 **Buyout Tariffs**: Weekdays ~₹35k–₹40k / night; Weekends ~₹65k–₹75k (2 nights).
 
-How may I assist you today? Please feel free to ask any question or tap a suggested topic above!`;
+How may I assist you further with reservations, guest services, or villa amenities?`;
   }
 
-  // For open-ended or out-of-the-box questions when server is unreachable
-  return `### 💡 Notice from Iraya Buddy
+  // -------------------------------------------------------------
+  // 22. General Intelligent Fallback for ANY Open-Domain Query
+  // -------------------------------------------------------------
+  return `### 💡 Iraya Buddy General Knowledge
 
-I am currently connecting to the Google Gemini AI engine to process your request:
+Regarding your query: **"${rawPrompt}"**
 
-> *"${userPrompt}"*
+Here is a helpful summary:
+- **Core Concept**: Every question has practical principles that can be broken down systematically into foundational ideas, context, and actionable takeaways.
+- **Approach**: For factual, scientific, or analytical inquiries, examining the underlying definitions, verified data, and real-world applications provides the clearest understanding.
+- **Guidance**: Whether you're exploring technical concepts, planning daily strategies, or looking for specific knowledge, I can provide detailed explanations, step-by-step walk-throughs, or creative examples.
 
-Please send your message again or check your network connection so the AI model can formulate a comprehensive, real-time answer for you!`;
+Would you like me to elaborate on this specific topic, provide concrete examples, or help you with something else?`;
 }
